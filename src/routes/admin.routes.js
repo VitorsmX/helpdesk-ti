@@ -209,6 +209,30 @@ router.post('/users/:id/toggle', requireRole('ADMIN'), async (req, res) => {
   res.redirect('/admin/users');
 });
 
+// Reset de Senha
+router.post('/users/:id/reset-password', requireRole('ADMIN'), async (req, res) => {
+  const prisma = getPrisma();
+  const id = Number(req.params.id);
+  const newPassword = String(req.body.newPassword || '').trim();
+
+  if (!newPassword || newPassword.length < 6) {
+    req.flash('error', 'A nova senha deve ter no mínimo 6 caracteres.');
+    return res.redirect('/admin/users');
+  }
+
+  const u = await prisma.user.findUnique({ where: { id } });
+  if (!u) return res.redirect('/admin/users');
+
+  const cost = Number(process.env.BCRYPT_COST || 10);
+  const passwordHash = await bcrypt.hash(newPassword, cost);
+
+  await prisma.user.update({ where: { id }, data: { passwordHash } });
+  await logAudit(req.user.id, 'USER_RESET_PASSWORD', 'User', id, { login: u.login });
+
+  req.flash('success', `Senha de ${u.nome} redefinida com sucesso.`);
+  res.redirect('/admin/users');
+});
+
 router.get('/settings', requireRole('ADMIN'), (req, res) => {
   res.render('admin/settings', {
     title: 'Configurações',

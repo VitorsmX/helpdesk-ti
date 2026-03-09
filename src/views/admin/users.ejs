@@ -180,6 +180,7 @@
                   <% } %>
                 </td>
                 <td class="text-end pe-4">
+                  <!-- Botão Ativar/Desativar -->
                   <form method="post" action="/admin/users/<%= u.id %>/toggle" class="d-inline">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button class="btn btn-sm btn-outline-<%= u.ativo ? 'warning' : 'success' %>" type="submit"
@@ -187,6 +188,14 @@
                       <i class="bi bi-<%= u.ativo ? 'pause' : 'play' %>-circle"></i>
                     </button>
                   </form>
+
+                  <!-- Botão Reset de Senha -->
+                  <button class="btn btn-sm btn-outline-secondary ms-1"
+                          data-bs-toggle="modal"
+                          data-bs-target="#resetModal-<%= u.id %>"
+                          title="Redefinir senha">
+                    <i class="bi bi-key"></i>
+                  </button>
                 </td>
               </tr>
             <% }) %>
@@ -196,6 +205,44 @@
     </div>
   </div>
 </div>
+
+<!-- Modais de Reset de Senha (fora da tabela para evitar z-index/overflow) -->
+<% users.forEach(u => { %>
+<div class="modal fade" id="resetModal-<%= u.id %>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-key me-2 text-warning"></i>Redefinir Senha
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="post" action="/admin/users/<%= u.id %>/reset-password">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            Definindo nova senha para <strong><%= u.nome %></strong>
+            <code class="ms-1"><%= u.login %></code>
+          </p>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-lock me-1"></i> Nova Senha
+            </label>
+            <input type="password" class="form-control" name="newPassword"
+                   placeholder="Mínimo 6 caracteres" minlength="6" required autofocus>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="bi bi-key me-1"></i> Redefinir Senha
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% }) %>
 
 <style>
 .avatar-sm {
