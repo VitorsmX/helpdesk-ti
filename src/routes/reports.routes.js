@@ -62,14 +62,15 @@ router.get('/', requireRole('ADMIN', 'TECH'), async (req, res) => {
         AND createdAt >= ${thirtyDaysAgo}
       `,
       
-      // 4. Métricas de SLA
+      // 4. Métricas de SLA — inclui abertos de qualquer data + fechados do período
       prisma.$queryRaw`
         SELECT 
           COUNT(*) as total,
-          COUNT(CASE WHEN responseBreachedAt IS NULL THEN 1 END) as on_time,
-          COUNT(CASE WHEN responseBreachedAt IS NOT NULL THEN 1 END) as breached
+          COUNT(CASE WHEN firstResponseAt IS NOT NULL AND responseBreachedAt IS NULL THEN 1 END) as on_time,
+          COUNT(CASE WHEN responseBreachedAt IS NOT NULL OR firstResponseAt IS NULL THEN 1 END) as breached
         FROM Ticket 
         WHERE createdAt >= ${thirtyDaysAgo}
+           OR (status IN ('OPEN','IN_PROGRESS','WAITING','WAITING_PARTS') AND firstResponseAt IS NULL)
       `,
       
       // 5. Contadores para alertas críticos
@@ -169,17 +170,17 @@ router.get('/', requireRole('ADMIN', 'TECH'), async (req, res) => {
         ORDER BY chamados_ativos DESC
       `,
       
-      // 12. SLA detalhado
+      // 12. SLA detalhado — inclui abertos de qualquer data + fechados do período
       prisma.$queryRaw`
         SELECT 
           COUNT(*) as total,
-          COUNT(CASE WHEN responseBreachedAt IS NULL THEN 1 END) as no_prazo,
-          COUNT(CASE WHEN responseBreachedAt IS NOT NULL THEN 1 END) as atrasados,
+          COUNT(CASE WHEN firstResponseAt IS NOT NULL AND responseBreachedAt IS NULL THEN 1 END) as no_prazo,
+          COUNT(CASE WHEN responseBreachedAt IS NOT NULL OR firstResponseAt IS NULL THEN 1 END) as atrasados,
           AVG(TIMESTAMPDIFF(HOUR, createdAt, firstResponseAt)) as tempo_medio_resposta,
           AVG(TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)) as tempo_medio_resolucao
         FROM Ticket
         WHERE createdAt >= ${thirtyDaysAgo}
-          AND resolvedAt IS NOT NULL
+           OR (status IN ('OPEN','IN_PROGRESS','WAITING','WAITING_PARTS') AND firstResponseAt IS NULL)
       `
     ]);
 

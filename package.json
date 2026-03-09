@@ -14,7 +14,7 @@
   "dependencies": {
     "@dr.pogodin/csurf": "^1.16.8",
     "@prisma/client": "6.2.0",
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
     "dotenv": "^16.4.5",

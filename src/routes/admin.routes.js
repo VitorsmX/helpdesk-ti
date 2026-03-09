@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { getPrisma } = require('../db');
 const { requireRole } = require('../middleware/auth');
 const { logAudit } = require('../middleware/audit');

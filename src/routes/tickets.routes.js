@@ -27,15 +27,24 @@ router.get('/my', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), asyn
 // Abrir chamado
 router.get('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), async (req, res) => {
   const prisma = getPrisma();
-  const categories = await prisma.category.findMany({
-    where: { ativo: true },
-    orderBy: [{ system: 'desc' }, { nome: 'asc' }]
-  });
+  const isAdminOrTech = req.user.role === 'ADMIN' || req.user.role === 'TECH';
+
+  const [categories, usfs] = await Promise.all([
+    prisma.category.findMany({
+      where: { ativo: true },
+      orderBy: [{ system: 'desc' }, { nome: 'asc' }]
+    }),
+    isAdminOrTech
+      ? prisma.usf.findMany({ orderBy: { nome: 'asc' } })
+      : Promise.resolve([])
+  ]);
 
   res.render('tickets/new', {
     title: 'Abrir chamado',
     categories,
-    rooms: ROOMS
+    rooms: ROOMS,
+    usfs,
+    isAdminOrTech
   });
 });
 
@@ -43,11 +52,23 @@ router.get('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), asy
 router.post('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), upload.array('attachments', 5), async (req, res) => {
   try {
     const prisma = getPrisma();
+    const isAdminOrTech = req.user.role === 'ADMIN' || req.user.role === 'TECH';
 
     const room = String(req.body.room || '');
     const title = String(req.body.title || '').trim();
     const description = String(req.body.description || '').trim();
     const categoryId = Number(req.body.categoryId);
+
+    // USF: Admin/TECH podem selecionar qualquer unidade; demais usam a própria
+    let usfId = req.user.usfId;
+    if (isAdminOrTech && req.body.usfId) {
+      usfId = Number(req.body.usfId);
+      const usf = await prisma.usf.findUnique({ where: { id: usfId } });
+      if (!usf) {
+        req.flash('error', 'Unidade de Saúde inválida.');
+        return res.redirect('/tickets/new');
+      }
+    }
 
     console.log('POST /tickets/new body=', req.body);
     console.log('files=', (req.files || []).length);
@@ -81,14 +102,10 @@ router.post('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), up
     
     // SLA Personalizado da Categoria
     if (cat.slaHours) {
-       // Se tem SLA em horas, calcula business time a partir da criação
-       // Reutiliza addBusinessMinutes do utils/sla
        const { addBusinessMinutes } = require('../utils/sla');
-       // Resposta padrão (1h) ou metade do SLA se for muito curto? Vamos manter padrão de prioridade para resposta
-       // e usar o slaHours para resolução.
-       const slaResMinutes = require('../utils/sla').SLA.responseMin[cat.defaultPriority || 'MEDIUM'] || 60;
-       
-       responseDueAt = addBusinessMinutes(now, slaResMinutes);
+       // Usa responseDueAt padrão da prioridade para prazo de resposta
+       const { responseDueAt: resp } = computeSlaDates(now, cat.defaultPriority || 'MEDIUM');
+       responseDueAt = resp;
        resolutionDueAt = addBusinessMinutes(now, cat.slaHours * 60);
 
     } else {
@@ -100,7 +117,7 @@ router.post('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), up
 
     const ticket = await prisma.ticket.create({
       data: {
-        usfId: req.user.usfId,
+        usfId,
         requesterId: req.user.id,
         room,
         categoryId,
@@ -112,7 +129,7 @@ router.post('/new', requireRole('REQUESTER', 'COORDINATOR', 'TECH', 'ADMIN'), up
     });
 
     await logAudit(req.user.id, 'TICKET_CREATE', 'Ticket', ticket.id, {
-      usfId: req.user.usfId,
+      usfId,
       room,
       categoryId
     });

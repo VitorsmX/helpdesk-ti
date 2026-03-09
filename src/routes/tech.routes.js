@@ -27,8 +27,8 @@ router.get('/tickets', requireRole('TECH', 'ADMIN'), async (req, res) => {
 
   if (q) {
     where.OR = [
-      { title: { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } }
+      { title: { contains: q } },
+      { description: { contains: q } }
     ];
   }
 
