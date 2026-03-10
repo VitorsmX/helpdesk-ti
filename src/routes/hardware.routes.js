@@ -46,7 +46,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireRole('ADMIN'), async (req, res) => {
   const prisma = getPrisma();
 
-  const patrimonio = String(req.body.patrimonio || '').trim();
+  const patrimonio = String(req.body.patrimonio || '').trim() || null;
   const usfId = Number(req.body.usfId);
   const sala = String(req.body.sala || '');
   const anydesk = String(req.body.anydesk || '').trim() || null;
@@ -55,8 +55,8 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
   const modelo = String(req.body.modelo || '').trim() || null;
   const observacoes = String(req.body.observacoes || '').trim() || null;
 
-  if (!patrimonio || !usfId || !sala || !tipo) {
-    req.flash('error', 'Preencha todos os campos obrigatórios (Patrimônio, USF, Sala, Tipo).');
+  if (!usfId || !sala || !tipo) {
+    req.flash('error', 'Preencha os campos obrigatórios (USF, Sala, Tipo).');
     return res.redirect('/hardware');
   }
 
@@ -109,13 +109,13 @@ router.post('/:id/update', requireAuth, async (req, res) => {
 
   if (req.user.role === 'ADMIN') {
     // ADMIN pode editar todos os campos
-    const patrimonio = String(req.body.patrimonio || '').trim();
+    const patrimonio = String(req.body.patrimonio || '').trim() || null;
     const usfId = Number(req.body.usfId);
     const sala = String(req.body.sala || '');
     const tipo = String(req.body.tipo || '').trim();
 
-    if (!patrimonio || !usfId || !sala || !tipo) {
-      req.flash('error', 'Preencha todos os campos obrigatórios.');
+    if (!usfId || !sala || !tipo) {
+      req.flash('error', 'Preencha os campos obrigatórios (USF, Sala, Tipo).');
       return res.redirect('/hardware');
     }
 

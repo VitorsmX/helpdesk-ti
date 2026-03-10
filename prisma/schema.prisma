@@ -162,7 +162,7 @@ model InsumoHistorico {
 
 model Hardware {
   id          Int             @id @default(autoincrement())
-  patrimonio  String          @unique
+  patrimonio  String?         @unique
   usfId       Int
   sala        RoomName
   anydesk     String?

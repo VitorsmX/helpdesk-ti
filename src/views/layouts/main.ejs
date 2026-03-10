@@ -39,10 +39,10 @@
 
         <!-- Role: ADMIN -->
         <% if (user.role==='ADMIN' ) { %>
-          <!-- Dashboard Analytics -->
+          <!-- Relatorios -->
           <a class="sidebar-link" href="/reports">
-            <i class="bi bi-graph-up"></i>
-            <span>Dashboard</span>
+            <i class="bi bi-bar-chart"></i>
+            <span>Relatórios</span>
           </a>
 
           <!-- Monitoring Accordion -->
@@ -126,10 +126,12 @@
                 <i class="bi bi-box-seam"></i>
                 <span>Insumos</span>
               </a>
+              <% if (user.role === 'TECH') { %>
               <a class="sidebar-link" href="/reports">
                 <i class="bi bi-bar-chart"></i>
                 <span>Relatórios</span>
               </a>
+              <% } %>
               <% } %>
 
                 <!-- Role: COORDINATOR -->

@@ -136,8 +136,8 @@
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Patrimônio *</label>
-            <input type="text" name="patrimonio" class="form-control" required>
+            <label class="form-label">Patrimônio <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="text" name="patrimonio" class="form-control" placeholder="Ex: 00123">
           </div>
           <div class="mb-3">
             <label class="form-label">USF *</label>
@@ -332,8 +332,8 @@ function openEditModal(hw, usfs) {
   const body = document.getElementById('editModalBody');
   body.innerHTML = `
     <div class="mb-3">
-      <label class="form-label">Patrimônio *</label>
-      <input type="text" name="patrimonio" class="form-control" value="${hw.patrimonio}" required>
+      <label class="form-label">Patrimônio <span class="text-muted fw-normal small">(opcional)</span></label>
+      <input type="text" name="patrimonio" class="form-control" value="${hw.patrimonio || ''}">
     </div>
     <div class="mb-3">
       <label class="form-label">USF *</label>
