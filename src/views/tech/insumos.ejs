@@ -1,0 +1,231 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-1 text-gray-800">
+        <i class="bi bi-box-seam text-primary"></i> Estoque de Insumos
+      </h1>
+      <p class="text-muted small mb-0">
+        <i class="bi bi-info-circle"></i> Visualização do estoque disponível para atendimentos
+      </p>
+    </div>
+  </div>
+
+  <!-- Estatísticas Rápidas -->
+  <div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total de Itens
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800"><%= insumos.length %></div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-boxes fs-2 text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-danger shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                Estoque Crítico
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                <%= insumos.filter(i => i.quantidadeAtual < i.quantidadeMinima).length %>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-exclamation-triangle fs-2 text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Toners
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                <%= insumos.filter(i => i.tipo === 'TONER').length %>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-printer fs-2 text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Cabos/Peças
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                <%= insumos.filter(i => i.tipo === 'CABO' || i.tipo === 'PECAS').length %>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-plug fs-2 text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela de Insumos -->
+  <div class="card shadow">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="bi bi-list-ul"></i> Inventário Completo
+      </h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Item</th>
+              <th>Tipo</th>
+              <th>Quantidade Atual</th>
+              <th>Mínimo</th>
+              <th>Status</th>
+              <th class="pe-4">Última Atualização</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (insumos.length === 0) { %>
+              <tr>
+                <td colspan="6" class="text-center py-5 text-muted">
+                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                  Nenhum item no estoque ainda.
+                </td>
+              </tr>
+            <% } else { %>
+              <% insumos.forEach(item => { %>
+                <tr>
+                  <td class="ps-4">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar-sm bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-3">
+                        <% if (item.tipo === 'TONER') { %>
+                          <i class="bi bi-printer-fill text-primary"></i>
+                        <% } else if (item.tipo === 'CABO') { %>
+                          <i class="bi bi-plug-fill text-primary"></i>
+                        <% } else { %>
+                          <i class="bi bi-tools text-primary"></i>
+                        <% } %>
+                      </div>
+                      <div>
+                        <div class="fw-semibold"><%= item.nome %></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <% 
+                      const tipoColors = {
+                        TONER: 'warning',
+                        CABO: 'info',
+                        PECAS: 'secondary'
+                      };
+                    %>
+                    <span class="badge bg-<%= tipoColors[item.tipo] || 'secondary' %>">
+                      <%= item.tipo %>
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="progress flex-grow-1 me-2" style="height: 20px; max-width: 150px;">
+                        <% 
+                          const percentage = Math.min(100, (item.quantidadeAtual / (item.quantidadeMinima * 2)) * 100);
+                          const progressColor = item.quantidadeAtual < item.quantidadeMinima ? 'bg-danger' : 
+                                               item.quantidadeAtual < item.quantidadeMinima * 1.5 ? 'bg-warning' : 'bg-success';
+                        %>
+                        <div class="progress-bar <%= progressColor %>" role="progressbar" 
+                             style="width: <%= percentage %>%" 
+                             aria-valuenow="<%= item.quantidadeAtual %>" 
+                             aria-valuemin="0" 
+                             aria-valuemax="<%= item.quantidadeMinima * 2 %>">
+                        </div>
+                      </div>
+                      <span class="fw-bold"><%= item.quantidadeAtual %></span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-muted"><%= item.quantidadeMinima %></span>
+                  </td>
+                  <td>
+                    <% if (item.quantidadeAtual < item.quantidadeMinima) { %>
+                      <span class="badge bg-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i> CRÍTICO
+                      </span>
+                    <% } else if (item.quantidadeAtual < item.quantidadeMinima * 1.5) { %>
+                      <span class="badge bg-warning text-dark">
+                        <i class="bi bi-exclamation-circle"></i> BAIXO
+                      </span>
+                    <% } else { %>
+                      <span class="badge bg-success">
+                        <i class="bi bi-check-circle"></i> OK
+                      </span>
+                    <% } %>
+                  </td>
+                  <td class="pe-4">
+                    <small class="text-muted">
+                      <i class="bi bi-clock"></i> <%= new Date(item.updatedAt).toLocaleDateString('pt-BR') %>
+                    </small>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta para Admin -->
+  <div class="alert alert-info mt-4">
+    <i class="bi bi-info-circle-fill"></i>
+    <strong>Nota:</strong> Para adicionar ou ajustar quantidades no estoque, entre em contato com o Administrador ou acesse a área administrativa.
+  </div>
+</div>
+
+<style>
+.border-left-primary {
+  border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+  border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+  border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+  border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-danger {
+  border-left: 0.25rem solid #e74a3b !important;
+}
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+}
+</style>

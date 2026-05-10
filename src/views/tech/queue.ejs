@@ -1,0 +1,359 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-1 text-gray-800">
+        <i class="bi bi-inbox-fill text-primary"></i> Fila de Atendimento TI
+      </h1>
+      <p class="text-muted small mb-0">
+        <i class="bi bi-funnel"></i> Use os filtros abaixo para encontrar chamados específicos
+      </p>
+    </div>
+    <div class="text-muted small">
+      <i class="bi bi-list-check"></i> <strong><%= tickets.length %></strong> chamado(s) encontrado(s)
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="bi bi-sliders"></i> Filtros de Busca
+      </h6>
+    </div>
+    <div class="card-body">
+      <form method="get" action="/tech/tickets">
+        <div class="row g-3">
+          <!-- Busca Textual -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-search"></i> Buscar
+            </label>
+            <input class="form-control" name="q" value="<%= filters.q %>" 
+                   placeholder="Título ou descrição...">
+          </div>
+
+          <!-- USF -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-building"></i> Unidade (USF)
+            </label>
+            <select class="form-select" name="usfId">
+              <option value="">Todas as unidades</option>
+              <% usfs.forEach(u => { %>
+                <option value="<%= u.id %>" <%= String(filters.usfId) === String(u.id) ? 'selected' : '' %>>
+                  <%= u.nome %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <!-- Sala -->
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-door-open"></i> Sala
+            </label>
+            <select class="form-select" name="room">
+              <option value="">Todas as salas</option>
+              <% ['RECEPCAO', 'ENFERMAGEM', 'MEDICO', 'REUNIAO', 'VACINA', 'TRIAGEM', 'OUTRO'].forEach(r => { %>
+                <option value="<%= r %>" <%= filters.room === r ? 'selected' : '' %>><%= translateRoom(r) %></option>
+              <% }) %>
+            </select>
+          </div>
+
+          <!-- Status -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-flag"></i> Status
+            </label>
+            <select class="form-select" name="status">
+              <option value="">Todos</option>
+              <% ['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'].forEach(s => { %>
+                <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>>
+                  <%= translateStatus(s) %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <!-- Categoria -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-tag"></i> Categoria
+            </label>
+            <select class="form-select" name="categoryId">
+              <option value="">Todas</option>
+              <% categories.forEach(c => { %>
+                <option value="<%= c.id %>" <%= String(filters.categoryId) === String(c.id) ? 'selected' : '' %>>
+                  <%= c.nome %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <!-- Prioridade -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-exclamation-triangle"></i> Prioridade
+            </label>
+            <select class="form-select" name="priority">
+              <option value="">Todas</option>
+              <% ['LOW', 'MEDIUM', 'HIGH', 'URGENT'].forEach(p => { %>
+                <option value="<%= p %>" <%= filters.priority === p ? 'selected' : '' %>>
+                  <%= translatePriority(p) %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+
+          <!-- Responsável -->
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-person-check"></i> Responsável
+            </label>
+            <select class="form-select" name="assigneeId">
+              <option value="">Qualquer técnico</option>
+              <% techs.forEach(t => { %>
+                <option value="<%= t.id %>" <%= String(filters.assigneeId) === String(t.id) ? 'selected' : '' %>>
+                  <%= t.nome %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+          <a href="/tech/tickets" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Limpar
+          </a>
+          <button class="btn btn-primary" type="submit">
+            <i class="bi bi-funnel-fill"></i> Aplicar Filtros
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela de Chamados -->
+  <div class="card shadow">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="bi bi-list-ul"></i> Chamados na Fila
+      </h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3" width="60">#</th>
+              <th class="queue-title-col">Título</th>
+              <th class="queue-usf-col d-none d-lg-table-cell">USF</th>
+              <th class="queue-room-col d-none d-xl-table-cell">Sala</th>
+              <th class="queue-status-col">Status</th>
+              <th class="queue-priority-col">Prior.</th>
+              <th class="queue-assignee-col d-none d-md-table-cell">Responsável</th>
+              <th class="queue-date-col d-none d-lg-table-cell">Atualizado</th>
+              <th class="text-end pe-3" width="90">Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (tickets.length === 0) { %>
+              <tr>
+                <td colspan="9" class="text-center py-5 text-muted">
+                  <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                  Nenhum chamado encontrado com os filtros aplicados.
+                </td>
+              </tr>
+            <% } else { %>
+              <% tickets.forEach(t => { %>
+                <tr>
+                  <td class="ps-3">
+                    <span class="badge bg-light text-dark border fw-bold" style="font-size: 0.7rem;">#<%= t.id %></span>
+                  </td>
+                  <td class="queue-title-col">
+                    <div class="fw-semibold queue-title-text"><%= t.title %></div>
+                    <% if (t.category) { %>
+                      <small class="text-muted">
+                        <i class="bi bi-tag"></i> <%= t.category.nome %>
+                      </small>
+                    <% } %>
+                  </td>
+                  <td class="queue-usf-col d-none d-lg-table-cell">
+                    <% if (t.usf) { %>
+                      <span class="badge bg-light text-dark border queue-badge-compact">
+                        <%= t.usf.nome %>
+                      </span>
+                    <% } %>
+                  </td>
+                  <td class="queue-room-col d-none d-xl-table-cell">
+                    <span class="badge bg-secondary queue-badge-compact"><%= t.roomRef?.nome || translateRoom(t.room) %></span>
+                  </td>
+                  <td class="queue-status-col">
+                    <span class="badge <%= statusBadgeClass(t.status) %> queue-badge-compact">
+                      <%= translateStatus(t.status) %>
+                    </span>
+                  </td>
+                  <td class="queue-priority-col">
+                    <span class="badge <%= priorityBadgeClass(t.priority) %> queue-badge-compact">
+                      <%= translatePriority(t.priority) %>
+                    </span>
+                  </td>
+                  <td class="queue-assignee-col d-none d-md-table-cell">
+                    <% if (t.assignee) { %>
+                      <div class="d-flex align-items-center">
+                        <div class="avatar-xs bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center me-1">
+                          <i class="bi bi-person-fill text-primary" style="font-size: 0.7rem;"></i>
+                        </div>
+                        <span class="small queue-assignee-text"><%= t.assignee.nome %></span>
+                      </div>
+                    <% } else { %>
+                      <span class="text-muted small">—</span>
+                    <% } %>
+                  </td>
+                  <td class="queue-date-col d-none d-lg-table-cell">
+                    <small class="text-muted" style="font-size: 0.75rem;">
+                      <%= fmtDateBR(t.updatedAt) %>
+                    </small>
+                  </td>
+                  <td class="text-end pe-3">
+                    <a class="btn btn-sm btn-primary queue-action-btn" href="/tech/tickets/<%= t.id %>" title="Atender chamado #<%= t.id %>">
+                      <i class="bi bi-arrow-right-circle"></i>
+                      <span class="d-none d-sm-inline ms-1">Atender</span>
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Avatar */
+.avatar-xs {
+  width: 20px;
+  height: 20px;
+}
+
+/* Queue Table Optimizations */
+.queue-title-col {
+  max-width: 300px;
+  min-width: 150px;
+}
+
+.queue-title-text {
+  font-size: 0.9rem;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.queue-usf-col {
+  max-width: 140px;
+}
+
+.queue-room-col {
+  width: 100px;
+}
+
+.queue-status-col {
+  width: 100px;
+}
+
+.queue-priority-col {
+  width: 85px;
+}
+
+.queue-assignee-col {
+  max-width: 150px;
+}
+
+.queue-assignee-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+  display: inline-block;
+  font-size: 0.8rem;
+}
+
+.queue-date-col {
+  width: 110px;
+}
+
+/* Compact Badges */
+.queue-badge-compact {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* Compact Action Button */
+.queue-action-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  min-width: 36px;
+}
+
+.queue-action-btn i {
+  font-size: 1rem;
+}
+
+/* Table Responsive Improvements */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.table thead th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 0.75rem 0.5rem;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 576px) {
+  .queue-action-btn {
+    padding: 0.4rem 0.5rem;
+    min-width: 32px;
+  }
+  
+  .queue-title-col {
+    max-width: 180px;
+  }
+  
+  .table {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .queue-title-col {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 992px) {
+  .queue-title-col {
+    max-width: 220px;
+  }
+}
+</style>

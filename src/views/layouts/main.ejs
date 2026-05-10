@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <% if (user) { %>
+    <meta name="csrf-token" content="<%= csrfToken || '' %>" />
+    <meta name="session-max-age-ms" content="<%= sessionMaxAgeMs || '' %>" />
+  <% } %>
+  <title>
+    <%= title || 'Helpdesk TI' %>
+  </title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Bootstrap CSS (local) -->
+  <link href="/public/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link href="<%= asset('/public/app.css') %>" rel="stylesheet">
+</head>
+
+<% const isLoginPage = !user && title === 'Login'; %>
+<body class="<%= isLoginPage ? 'login-page' : '' %>"<% if (user) { %> data-user-id="<%= user.id %>" data-user-role="<%= user.role %>"<% } %>>
+  <% if (user) { %>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <i class="bi bi-asterisk text-primary fs-3"></i>
+        <span class="sidebar-brand">Helpdesk TI</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Common Links -->
+        <a class="sidebar-link" href="/">
+          <i class="bi bi-house-door"></i>
+          <span>Início</span>
+        </a>
+
+        <!-- Role: ADMIN -->
+        <% if (user.role==='ADMIN' ) { %>
+          <!-- Relatorios -->
+          <a class="sidebar-link" href="/reports">
+            <i class="bi bi-bar-chart"></i>
+            <span>Relatórios</span>
+          </a>
+
+          <!-- Monitoring Accordion -->
+          <button class="sidebar-accordion-header" id="monitoringAccordion" type="button">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>Monitoramento</span>
+            <i class="bi bi-chevron-down chevron"></i>
+          </button>
+          <div class="sidebar-accordion-content" id="monitoringContent">
+            <!-- SLA Estourado (with badge) -->
+            <a class="sidebar-link" href="/admin/sla-breached">
+              <i class="bi bi-clock-history text-danger"></i>
+              <span>SLA Estourado</span>
+              <% if (monitoringStats && monitoringStats.slaBreached> 0) { %>
+                <span class="sidebar-badge bg-danger">
+                  <%= monitoringStats.slaBreached %>
+                </span>
+                <% } %>
+            </a>
+
+            <!-- Equipamentos Condenados (with badge) -->
+            <a class="sidebar-link" href="/admin/condemned-assets">
+              <i class="bi bi-trash text-warning"></i>
+              <span>Equipamentos Condenados</span>
+              <% if (monitoringStats && monitoringStats.condemned> 0) { %>
+                <span class="sidebar-badge bg-warning">
+                  <%= monitoringStats.condemned %>
+                </span>
+                <% } %>
+            </a>
+
+            <!-- Aguardando Peças (with badge) -->
+            <a class="sidebar-link" href="/admin/waiting-parts">
+              <i class="bi bi-hourglass-split text-info"></i>
+              <span>Aguardando Peças</span>
+              <% if (monitoringStats && monitoringStats.waitingParts> 0) { %>
+                <span class="sidebar-badge bg-warning">
+                  <%= monitoringStats.waitingParts %>
+                </span>
+                <% } %>
+            </a>
+
+            <!-- Logs de Auditoria -->
+            <a class="sidebar-link" href="/admin/audit-logs">
+              <i class="bi bi-shield-check text-success"></i>
+              <span>Logs de Auditoria</span>
+            </a>
+          </div>
+
+          <div class="sidebar-heading mt-3">GERENCIAMENTO</div>
+          <a class="sidebar-link" href="/admin/users">
+            <i class="bi bi-people"></i>
+            <span>Usuários</span>
+          </a>
+          <a class="sidebar-link" href="/admin/usfs">
+            <i class="bi bi-building"></i>
+            <span>Unidades (USFs)</span>
+          </a>
+          <a class="sidebar-link" href="/admin/locations">
+            <i class="bi bi-diagram-3"></i>
+            <span>Setores e Salas</span>
+          </a>
+          <a class="sidebar-link" href="/admin/categories">
+            <i class="bi bi-tags"></i>
+            <span>Categorias</span>
+          </a>
+          <a class="sidebar-link" href="/admin/insumos">
+            <i class="bi bi-box-seam"></i>
+            <span>Estoque (Insumos)</span>
+          </a>
+          <a class="sidebar-link" href="/hardware">
+            <i class="bi bi-pc-display"></i>
+            <span>Inventário de Hardware</span>
+          </a>
+          <a class="sidebar-link" href="/admin/settings">
+            <i class="bi bi-gear"></i>
+            <span>Configurações</span>
+          </a>
+          <% } %>
+
+            <!-- Role: TECH / ADMIN -->
+            <% if (['ADMIN', 'TECH' ].includes(user.role)) { %>
+              <div class="sidebar-heading mt-3">OPERACIONAL</div>
+              <a class="sidebar-link" href="/tech/tickets">
+                <i class="bi bi-inbox-fill"></i>
+                <span>Fila Geral</span>
+              </a>
+              <a class="sidebar-link" href="/tech/insumos">
+                <i class="bi bi-box-seam"></i>
+                <span>Insumos</span>
+              </a>
+              <a class="sidebar-link" href="/hardware">
+                <i class="bi bi-pc-display"></i>
+                <span>Inventário de Hardware</span>
+              </a>
+              <% if (user.role === 'TECH') { %>
+              <a class="sidebar-link" href="/reports">
+                <i class="bi bi-bar-chart"></i>
+                <span>Relatórios</span>
+              </a>
+              <% } %>
+              <% } %>
+
+                <!-- Role: COORDINATOR -->
+                <% if (user.role==='COORDINATOR' ) { %>
+                  <a class="sidebar-link" href="/coordinator/tickets">
+                    <i class="bi bi-shop"></i>
+                    <span>Chamados da USF</span>
+                  </a>
+                  <a class="sidebar-link" href="/reports">
+                    <i class="bi bi-bar-chart"></i>
+                    <span>Relatórios</span>
+                  </a>
+                  <% } %>
+
+                    <!-- Common Ticket Actions -->
+                    <div class="sidebar-heading mt-3">MEU USO</div>
+                    <a class="sidebar-link" href="/tickets/my">
+                      <i class="bi bi-person"></i>
+                      <span>Meus Chamados</span>
+                    </a>
+                    <a class="sidebar-link" href="/tickets/new">
+                      <i class="bi bi-plus-circle"></i>
+                      <span>Abrir Chamado</span>
+                    </a>
+                    <a class="sidebar-link" href="/account/password">
+                      <i class="bi bi-shield-lock"></i>
+                      <span>Minha senha</span>
+                    </a>
+                    <button class="sidebar-link sidebar-button w-100 border-0 bg-transparent text-start"
+                      id="notificationPanelButton" type="button" data-bs-toggle="modal"
+                      data-bs-target="#notificationsModal">
+                      <i class="bi bi-bell"></i>
+                      <span>Notificações</span>
+                      <span class="notification-status-dot" id="notificationStatusDot" aria-hidden="true"></span>
+                    </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-link">
+          <i class="bi bi-person-circle"></i>
+          <span class="text-truncate small">
+            <%= user.nome %>
+              <div class="text-xs text-muted fw-normal">
+                <%= user.role %>
+              </div>
+          </span>
+        </div>
+        <form method="post" action="/logout" class="d-grid mt-2 px-2" data-no-ajax="true">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="sidebar-link w-100 border-0 bg-transparent text-start" type="submit">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Sair</span>
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Mobile Header & Overlay -->
+    <div class="mobile-header">
+      <button class="btn border-0 text-primary p-2" id="mobileMenuBtn">
+        <i class="bi bi-list fs-1"></i>
+      </button>
+      <span class="fw-bold text-primary fs-4 ms-2">Helpdesk TI</span>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <% } %>
+
+      <main class="container py-4 <%= user ? 'main-with-sidebar' : '' %>">
+        <%- include('../partials/flash') %>
+          <%- body %>
+      </main>
+
+      <footer class="app-footer <%= user ? 'app-footer-with-sidebar' : '' %>">
+        <div class="app-footer-inner">
+          <span>&copy; <%= new Date().getFullYear() %> Helpdesk TI</span>
+          <span class="app-footer-separator" aria-hidden="true"></span>
+          <span>Desenvolvido com <i class="bi bi-cpu-fill" aria-hidden="true"></i> pela Equipe de Tecnologia da Informação da Secretaria Municipal de Saúde de Capanema-PA</span>
+        </div>
+      </footer>
+
+      <% if (user) { %>
+        <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="confirmActionTitle">Confirmar ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+              </div>
+              <div class="modal-body">
+                <p class="mb-0" id="confirmActionMessage">Revise esta operação antes de continuar.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmActionSubmit">Confirmar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="sessionRenewModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content session-renew-modal">
+              <div class="modal-header">
+                <h5 class="modal-title">Ainda está aí?</h5>
+              </div>
+              <div class="modal-body">
+                <p class="mb-2">Sua sessão está perto de expirar para manter o sistema seguro.</p>
+                <p class="text-muted small mb-0">
+                  Tempo restante aproximado:
+                  <strong id="sessionRenewCountdown">--:--</strong>
+                </p>
+              </div>
+              <div class="modal-footer">
+                <form method="post" action="/logout" class="m-0" data-no-ajax="true">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-outline-secondary" type="submit">Sair</button>
+                </form>
+                <button type="button" class="btn btn-primary" id="sessionRenewButton">Continuar sessão</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="notificationsModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content notifications-modal">
+              <div class="modal-header">
+                <div>
+                  <h5 class="modal-title">Notificações do navegador</h5>
+                  <p class="text-muted small mb-0">Alertas do Helpdesk TI exibidos pelo navegador no Windows.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="notification-control-panel">
+                  <div>
+                    <div class="fw-bold">Receber alertas deste sistema</div>
+                    <div class="small text-muted" id="notificationPermissionState">Verificando permissão...</div>
+                  </div>
+                  <div class="form-check form-switch notification-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="notificationToggle">
+                    <label class="form-check-label" for="notificationToggle">Ativar</label>
+                  </div>
+                </div>
+
+                <div class="notification-actions">
+                  <button class="btn btn-primary" type="button" id="notificationPermissionButton">
+                    <i class="bi bi-bell-fill"></i>
+                    Permitir no navegador
+                  </button>
+                  <button class="btn btn-outline-secondary" type="button" id="notificationTestButton">
+                    <i class="bi bi-send-check"></i>
+                    Enviar teste
+                  </button>
+                </div>
+
+                <div class="notification-guide" id="notificationGuideStatus" aria-live="polite">
+                  <div class="notification-guide-step">
+                    <span>1</span>
+                    <p>Clique em <strong>Permitir no navegador</strong>.</p>
+                  </div>
+                  <div class="notification-guide-step">
+                    <span>2</span>
+                    <p>No aviso do Chrome, Edge ou Firefox, escolha <strong>Permitir</strong>.</p>
+                  </div>
+                  <div class="notification-guide-step">
+                    <span>3</span>
+                    <p>Se estiver bloqueado, clique no cadeado ao lado do endereço, abra as permissões do site e mude Notificações para <strong>Permitir</strong>.</p>
+                  </div>
+                </div>
+
+                <div class="notification-role-box">
+                  <div class="fw-bold mb-2">Eventos para o seu perfil</div>
+                  <% if (user.role === 'ADMIN') { %>
+                    <p class="small text-muted mb-0">SLA estourado, chamados urgentes, estoque crítico, equipamentos sem reparo e chamados aguardando peças.</p>
+                  <% } else if (user.role === 'TECH') { %>
+                    <p class="small text-muted mb-0">Novos chamados na fila TI, respostas em chamados atribuídos a você e prazos de SLA próximos do vencimento.</p>
+                  <% } else if (user.role === 'COORDINATOR') { %>
+                    <p class="small text-muted mb-0">Novos chamados da sua unidade, movimentações públicas e prazos de SLA que precisam de atenção.</p>
+                  <% } else { %>
+                    <p class="small text-muted mb-0">Respostas e mudanças de status nos chamados que você abriu.</p>
+                  <% } %>
+                </div>
+
+                <div class="alert alert-info notification-support-message mb-0" id="notificationSupportMessage">
+                  O navegador precisa estar aberto para entregar estes alertas. A aparência final da notificação é definida pelo Windows e pelo navegador, mas o sistema diferencia título, prioridade, ícone e persistência por ocorrência.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Bootstrap JS Bundle (local) -->
+      <script src="/public/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+
+      <script src="<%= asset('/public/app-shell.js') %>"></script>
+      <% if (user) { %>
+        <script src="<%= asset('/public/session-keeper.js') %>"></script>
+        <script src="<%= asset('/public/notifications.js') %>"></script>
+      <% } %>
+
+      <% if (user && user.role==='ADMIN' ) { %>
+        <!-- Accordion script (external file to comply with CSP) -->
+        <script src="<%= asset('/public/sidebar-accordion.js') %>"></script>
+      <% } %>
+</body>
+
+</html>

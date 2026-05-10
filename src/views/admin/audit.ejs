@@ -1,0 +1,39 @@
+<h1 class="h3 mb-4 text-gray-800">Logs de Auditoria</h1>
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Histórico de Ações</h6>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Data/Hora</th>
+            <th>Usuário</th>
+            <th>Ação</th>
+            <th>Entidade</th>
+            <th>Detalhes (JSON)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (logs.length === 0) { %>
+            <tr><td colspan="6" class="text-center">Nenhum log encontrado.</td></tr>
+          <% } else { %>
+            <% logs.forEach(log => { %>
+              <tr>
+                <td><%= log.id %></td>
+                <td><%= new Date(log.createdAt).toLocaleString() %></td>
+                <td><%= log.actor ? log.actor.login : 'Sistema' %></td>
+                <td><span class="badge bg-secondary"><%= log.action %></span></td>
+                <td><%= log.entity %> (<%= log.entityId %>)</td>
+                <td><code class="small text-break"><%= log.dataJson || '-' %></code></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

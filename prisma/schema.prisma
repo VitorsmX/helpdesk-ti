@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Usf {
+  id               Int        @id @default(autoincrement())
+  nome             String     @unique
+  ipOnt            String?
+  modeloSwitch     String?
+  provedorInternet String?
+  tickets          Ticket[]
+  users            User[]
+  hardwares        Hardware[]
+  sectors          Sector[]
+  rooms            Room[]
+
+  @@map("USF")
+}
+
+model User {
+  id                  Int                  @id @default(autoincrement())
+  nome                String
+  login               String               @unique
+  email               String?              @unique
+  telefone            String?
+  cargo               String
+  ativo               Boolean              @default(true)
+  role                Role                 @default(REQUESTER)
+  usfId               Int
+  passwordHash        String
+  passwordChangedAt   DateTime             @default(now())
+  createdAt           DateTime             @default(now())
+  audits              AuditLog[]
+  assignedTickets     Ticket[]             @relation("TicketAssignee")
+  openedTickets       Ticket[]             @relation("TicketRequester")
+  uploads             TicketAttachment[]
+  messages            TicketMessage[]
+  passwordResetTokens PasswordResetToken[]
+  updatedSettings     AppSetting[]         @relation("SettingsUpdatedBy")
+  usf                 Usf                  @relation(fields: [usfId], references: [id])
+
+  @@index([usfId], map: "User_usfId_fkey")
+}
+
+model AppSetting {
+  key         String   @id @db.VarChar(100)
+  valueJson   String   @db.Text
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+  updatedBy   User?    @relation("SettingsUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([updatedById], map: "AppSetting_updatedById_fkey")
+}
+
+model PasswordResetToken {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "PasswordResetToken_userId_fkey")
+  @@index([expiresAt], map: "PasswordResetToken_expiresAt_idx")
+}
+
+model Category {
+  id              Int      @id @default(autoincrement())
+  nome            String   @unique
+  ativo           Boolean  @default(true)
+  system          Boolean  @default(false)
+  defaultPriority Priority @default(MEDIUM)
+  slaHours        Int?
+  tickets         Ticket[]
+}
+
+model Sector {
+  id        Int        @id @default(autoincrement())
+  usfId     Int
+  nome      String
+  ativo     Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  usf       Usf        @relation(fields: [usfId], references: [id])
+  rooms     Room[]
+  tickets   Ticket[]
+  hardwares Hardware[]
+
+  @@unique([usfId, nome])
+  @@index([usfId], map: "Sector_usfId_fkey")
+}
+
+model Room {
+  id         Int        @id @default(autoincrement())
+  usfId      Int
+  sectorId   Int
+  nome       String
+  legacyRoom RoomName?
+  ativo      Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  usf        Usf        @relation(fields: [usfId], references: [id])
+  sector     Sector     @relation(fields: [sectorId], references: [id])
+  tickets    Ticket[]
+  hardwares  Hardware[]
+
+  @@unique([sectorId, nome])
+  @@index([usfId], map: "Room_usfId_fkey")
+  @@index([sectorId], map: "Room_sectorId_fkey")
+}
+
+model Ticket {
+  id                        Int                @id @default(autoincrement())
+  usfId                     Int
+  sectorId                  Int?
+  roomId                    Int?
+  requesterId               Int
+  assigneeId                Int?
+  room                      RoomName
+  categoryId                Int
+  title                     String
+  description               String             @db.Text
+  status                    TicketStatus       @default(OPEN)
+  priority                  Priority           @default(MEDIUM)
+  firstResponseAt           DateTime?
+  responseDueAt             DateTime
+  responseBreachedAt        DateTime?
+  resolvedAt                DateTime?
+  resolutionDueAt           DateTime
+  resolutionBreachedAt      DateTime?
+  slaPausedAt               DateTime?
+  slaPausedTotalMin         Int                @default(0)
+  resolution                TicketResolution?
+  resolutionJustificativa   String?            @db.Text
+  resolutionAcaoRecomendada String?            @db.Text
+  trocaPecas                String?            @db.Text
+  trocaData                 DateTime?
+  equipamentoPatrimonio     String?
+  cnsUsuario                String?
+  cpfUsuario                String?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  insumosUtilizados         InsumoHistorico[]
+  assignee                  User?              @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  category                  Category           @relation(fields: [categoryId], references: [id])
+  roomRef                   Room?              @relation(fields: [roomId], references: [id])
+  sector                    Sector?            @relation(fields: [sectorId], references: [id])
+  requester                 User               @relation("TicketRequester", fields: [requesterId], references: [id])
+  usf                       Usf                @relation(fields: [usfId], references: [id])
+  attachments               TicketAttachment[]
+  messages                  TicketMessage[]
+
+  @@index([assigneeId], map: "Ticket_assigneeId_fkey")
+  @@index([categoryId], map: "Ticket_categoryId_fkey")
+  @@index([roomId], map: "Ticket_roomId_fkey")
+  @@index([sectorId], map: "Ticket_sectorId_fkey")
+  @@index([requesterId], map: "Ticket_requesterId_fkey")
+  @@index([usfId], map: "Ticket_usfId_fkey")
+}
+
+model TicketMessage {
+  id         Int               @id @default(autoincrement())
+  ticketId   Int
+  authorId   Int
+  body       String            @db.Text
+  visibility MessageVisibility @default(PUBLIC)
+  createdAt  DateTime          @default(now())
+  author     User              @relation(fields: [authorId], references: [id])
+  ticket     Ticket            @relation(fields: [ticketId], references: [id])
+
+  @@index([authorId], map: "TicketMessage_authorId_fkey")
+  @@index([ticketId], map: "TicketMessage_ticketId_fkey")
+}
+
+model TicketAttachment {
+  id           Int               @id @default(autoincrement())
+  ticketId     Int
+  uploadedById Int
+  originalName String
+  storedName   String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+  visibility   MessageVisibility @default(PUBLIC)
+  createdAt    DateTime          @default(now())
+  ticket       Ticket            @relation(fields: [ticketId], references: [id])
+  uploadedBy   User              @relation(fields: [uploadedById], references: [id])
+
+  @@index([ticketId], map: "TicketAttachment_ticketId_fkey")
+  @@index([uploadedById], map: "TicketAttachment_uploadedById_fkey")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  actorId   Int
+  action    String
+  entity    String
+  entityId  Int
+  dataJson  String?  @db.Text
+  createdAt DateTime @default(now())
+  actor     User     @relation(fields: [actorId], references: [id])
+
+  @@index([actorId], map: "AuditLog_actorId_fkey")
+}
+
+model Insumo {
+  id               Int               @id @default(autoincrement())
+  nome             String
+  tipo             InsumoTipo
+  quantidadeAtual  Int
+  quantidadeMinima Int
+  historico        InsumoHistorico[]
+}
+
+model InsumoHistorico {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  insumoId   Int
+  quantidade Int
+  dataUso    DateTime @default(now())
+  insumo     Insumo   @relation(fields: [insumoId], references: [id])
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@index([insumoId], map: "InsumoHistorico_insumoId_fkey")
+  @@index([ticketId], map: "InsumoHistorico_ticketId_fkey")
+}
+
+model Hardware {
+  id          Int            @id @default(autoincrement())
+  patrimonio  String?        @unique
+  usfId       Int
+  sectorId    Int?
+  roomId      Int?
+  sala        RoomName
+  anydesk     String?
+  status      HardwareStatus @default(ATIVO)
+  tipo        String
+  modelo      String?
+  observacoes String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  usf         Usf            @relation(fields: [usfId], references: [id])
+  roomRef     Room?          @relation(fields: [roomId], references: [id])
+  sector      Sector?        @relation(fields: [sectorId], references: [id])
+
+  @@index([usfId], map: "Hardware_usfId_fkey")
+  @@index([roomId], map: "Hardware_roomId_fkey")
+  @@index([sectorId], map: "Hardware_sectorId_fkey")
+}
+
+enum Role {
+  REQUESTER
+  COORDINATOR
+  TECH
+  ADMIN
+}
+
+enum RoomName {
+  RECEPCAO
+  ENFERMAGEM
+  MEDICO
+  REUNIAO
+  VACINA
+  TRIAGEM
+  OUTRO
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum TicketResolution {
+  RESOLVIDO_SEM_TROCA_PECA
+  RESOLVIDO_COM_TROCA_PECA
+  AGUARDANDO_PECA_SEM_ESTOQUE
+  SEM_REPARO_EQUIPAMENTO_CONDENADO
+  ENCAMINHADO_TERCEIROS
+  CADASTRO_CONCLUIDO
+  MODULO_SEGURANCA_CONFIGURADO
+  SENHA_REDEFINIDA
+  PATCH_CORD_REFEITO
+  REDE_CONFIGURADA_LOCAL
+}
+
+enum InsumoTipo {
+  TONER
+  CABO
+  PECAS
+}
+
+enum HardwareStatus {
+  ATIVO
+  MANUTENCAO
+  PERCA_TOTAL
+}

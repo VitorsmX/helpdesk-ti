@@ -1,0 +1,245 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">
+      <i class="bi bi-speedometer2 text-primary"></i> Painel Administrativo
+    </h1>
+    <div class="text-muted small">
+      <i class="bi bi-clock"></i> <%= new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+    </div>
+  </div>
+
+  <!-- Cards de Acesso Rápido -->
+  <div class="row g-4 mb-4">
+    <!-- USFs -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-primary shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Unidades de Saúde
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">USFs</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-building fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/admin/usfs" class="btn btn-primary btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usuários -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-success shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Gestão de Acesso
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Usuários</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-people fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/admin/users" class="btn btn-success btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categorias -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-info shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Tipos de Chamados
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Categorias</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-tags fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/admin/categories" class="btn btn-info btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insumos -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-warning shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Controle de Estoque
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Insumos</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-box-seam fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/admin/insumos" class="btn btn-warning btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Segunda linha de cards -->
+  <div class="row g-4 mb-4">
+    <!-- Hardware -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-secondary shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                Inventário de TI
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Hardware</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-pc-display fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/hardware" class="btn btn-secondary btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Setores e Salas -->
+    <div class="col-xl-3 col-md-6">
+      <div class="card border-left-info shadow h-100 py-2 hover-lift">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Estrutura das Unidades
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">Setores e Salas</div>
+            </div>
+            <div class="col-auto">
+              <i class="bi bi-diagram-3 fs-2 text-gray-300"></i>
+            </div>
+          </div>
+          <a href="/admin/locations" class="btn btn-info btn-sm mt-3 w-100">
+            <i class="bi bi-arrow-right-circle"></i> Gerenciar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monitoramento e Auditoria -->
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i> Monitoramento
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="/admin/sla-breached" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <span style="font-size: 1.2rem;"><%= monitoringStats.slaBreached > 0 ? '🔴' : '🟢' %></span>
+                <span class="ms-2 fw-semibold">SLA Estourado</span>
+              </div>
+              <span class="badge <%= monitoringStats.slaBreached > 0 ? 'bg-danger' : 'bg-secondary' %> rounded-pill">
+                <%= monitoringStats.slaBreached %>
+              </span>
+            </a>
+            <a href="/admin/condemned" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <span style="font-size: 1.2rem;"><%= monitoringStats.condemned > 0 ? '🟠' : '🟢' %></span>
+                <span class="ms-2 fw-semibold">Equipamentos Condenados</span>
+              </div>
+              <span class="badge <%= monitoringStats.condemned > 0 ? 'bg-warning text-dark' : 'bg-secondary' %> rounded-pill">
+                <%= monitoringStats.condemned %>
+              </span>
+            </a>
+            <a href="/admin/audit" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-journal-text text-info"></i>
+                <span class="ms-2">Logs de Auditoria</span>
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            <i class="bi bi-gear-fill"></i> Configurações
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <a href="/admin/settings" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-sliders text-primary"></i>
+                <span class="ms-2">Configurações do Sistema</span>
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+            <a href="/reports" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <i class="bi bi-bar-chart text-success"></i>
+                <span class="ms-2">Relatórios e Dashboard</span>
+              </div>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.border-left-primary {
+  border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+  border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-info {
+  border-left: 0.25rem solid #36b9cc !important;
+}
+.border-left-warning {
+  border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-secondary {
+  border-left: 0.25rem solid #858796 !important;
+}
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.hover-lift:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+</style>

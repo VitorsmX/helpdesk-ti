@@ -1,0 +1,68 @@
+{
+  "name": "helpdesk-ti",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "start:prod": "node scripts/start-production.js",
+    "build": "npm run prisma:generate && npm run build:assets",
+    "build:prod": "npm run prisma:generate && npm run build:assets",
+    "build:compat": "npm run build:assets && npm run build:legacy",
+    "build:legacy": "node scripts/build-assets.js --legacy",
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "node prisma/seed.js",
+    "build:assets": "node scripts/build-assets.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@dr.pogodin/csurf": "^1.16.8",
+    "@prisma/client": "6.2.0",
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
+    "compression": "^1.8.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "express-ejs-layouts": "^2.5.1",
+    "express-mysql-session": "^3.0.3",
+    "express-rate-limit": "^8.5.1",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "pdfkit": "^0.18.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "prisma": "6.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "clean-css": "^5.3.3",
+    "terser": "^5.47.1"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "overrides": {
+    "path-to-regexp": "0.1.13",
+    "brace-expansion": "2.0.3"
+  },
+  "browserslist": {
+    "production": [
+      ">0.5%",
+      "not dead"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version"
+    ]
+  }
+}

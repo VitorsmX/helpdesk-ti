@@ -1,0 +1,50 @@
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h4 mb-1">Chamados da minha USF</h1>
+    <div class="text-secondary small">Visão do coordenador (somente sua unidade).</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Título</th>
+            <th>Solicitante</th>
+            <th>Status</th>
+            <th>Prioridade</th>
+            <th>Atualizado</th>
+            <th class="text-end">Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% tickets.forEach(t=> { %>
+            <tr>
+              <td class="fw-semibold">#<%= t.id %>
+              </td>
+              <td>
+                <%= t.title %>
+              </td>
+              <td>
+                <%= t.requester?.nome %>
+              </td>
+              <td><span class="badge <%= statusBadgeClass(t.status) %>">
+                  <%= translateStatus(t.status) %>
+                </span></td>
+              <td><span class="badge <%= priorityBadgeClass(t.priority) %>">
+                  <%= translatePriority(t.priority) %>
+                </span></td>
+              <td class="text-secondary">
+                <%= fmtDateBR(t.updatedAt) %>
+              </td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/tickets/<%= t.id %>">Abrir</a></td>
+            </tr>
+            <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

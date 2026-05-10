@@ -1,0 +1,78 @@
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 animate-delay-1">
+  <div>
+    <h1 class="h3 mb-1"><i class="bi bi-ticket-perforated me-2 text-primary"></i>Meus chamados</h1>
+    <div class="text-muted small">Gerencie e acompanhe suas solicitações de suporte.</div>
+  </div>
+  <a class="btn btn-primary shadow-sm" href="/tickets/new">
+    <i class="bi bi-plus-lg me-1"></i> <span class="d-none d-sm-inline">Novo Chamado</span>
+  </a>
+</div>
+
+<div class="card shadow-soft border-0 overflow-hidden animate-delay-2">
+  <div class="card-body p-0">
+    <% if (!tickets.length) { %>
+      <div class="text-center py-5">
+        <div class="display-3 text-secondary opacity-25 mb-4"><i class="bi bi-inbox-fill"></i></div>
+        <h4 class="text-muted fw-normal">Nenhum chamado encontrado</h4>
+        <p class="text-secondary opacity-75 mb-4">Clique no botão acima para abrir sua primeira solicitação.</p>
+        <a class="btn btn-primary" href="/tickets/new">Criar Chamado</a>
+      </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th class="ps-4">Ticket</th>
+                <th>Assunto</th>
+                <th>Categoria</th>
+                <th>Status</th>
+                <th>Prioridade</th>
+                <th class="d-none d-md-table-cell">Última Atualização</th>
+                <th class="text-end pe-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% tickets.forEach(t=> { %>
+                <tr>
+                  <td class="ps-4">
+                    <span class="badge bg-light text-secondary border fw-normal">#<%= t.id %></span>
+                  </td>
+                  <td>
+                    <a href="/tickets/<%= t.id %>"
+                      class="text-decoration-none fw-semibold text-dark text-truncate d-block text-body"
+                      style="max-width: 280px;">
+                      <%= t.title %>
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge border bg-white fw-normal text-muted">
+                      <i class="bi bi-tag me-1 opacity-50"></i>
+                      <%= t.category?.nome %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge border <%= statusBadgeClass(t.status) %>">
+                      <%= translateStatus(t.status) %>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge border <%= priorityBadgeClass(t.priority) %>">
+                      <%= translatePriority(t.priority) %>
+                    </span>
+                  </td>
+                  <td class="text-muted small d-none d-md-table-cell">
+                    <%= fmtDateBR(t.updatedAt) %>
+                  </td>
+                  <td class="text-end pe-4">
+                    <a class="btn btn-sm btn-light text-secondary border" href="/tickets/<%= t.id %>">
+                      Visualizar
+                    </a>
+                  </td>
+                </tr>
+                <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <% } %>
+  </div>
+</div>

@@ -1,0 +1,188 @@
+<%
+  const priorityLabels = { LOW: 'Baixa', MEDIUM: 'Média', HIGH: 'Alta', URGENT: 'Urgente' };
+  const priorityColors = { LOW: 'success', MEDIUM: 'warning', HIGH: 'orange', URGENT: 'danger' };
+%>
+
+<div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-tags text-primary"></i> Categorias
+    </h1>
+    <p class="text-muted mb-0">Organize chamados por assunto, prioridade padrão e SLA de resolução.</p>
+  </div>
+</div>
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">
+      <i class="bi bi-plus-circle"></i> Nova categoria
+    </h6>
+  </div>
+  <div class="card-body">
+    <form method="post" action="/admin/categories">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="catName" class="form-label">Nome da categoria <span class="required-mark">Obrigatório</span></label>
+          <input type="text" class="form-control" id="catName" name="nome" required maxlength="120" placeholder="Ex: Impressora, Rede">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Prioridade padrão <span class="required-mark">Obrigatório</span></label>
+          <select name="defaultPriority" class="form-select">
+            <option value="LOW">Baixa</option>
+            <option value="MEDIUM" selected>Média</option>
+            <option value="HIGH">Alta</option>
+            <option value="URGENT">Urgente</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">SLA em horas <span class="optional-mark">Opcional</span></label>
+          <input type="number" name="slaHours" class="form-control" placeholder="Padrão da prioridade" min="1" max="720">
+        </div>
+      </div>
+      <div class="d-flex justify-content-end mt-3">
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-check-circle"></i> Cadastrar categoria
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">
+      <i class="bi bi-list-ul"></i> Categorias cadastradas
+      <span class="badge bg-primary ms-2"><%= categories.length %></span>
+    </h6>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Nome</th>
+            <th>Tipo</th>
+            <th>Prioridade</th>
+            <th>SLA</th>
+            <th>Status</th>
+            <th class="text-end pe-4">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (categories.length === 0) { %>
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                Nenhuma categoria cadastrada ainda.
+              </td>
+            </tr>
+          <% } else { %>
+            <% categories.forEach(c => { %>
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-tag-fill text-primary me-2"></i>
+                    <span class="fw-semibold"><%= c.nome %></span>
+                  </div>
+                </td>
+                <td>
+                  <% if (c.system) { %>
+                    <span class="badge bg-secondary"><i class="bi bi-lock-fill"></i> Sistema</span>
+                  <% } else { %>
+                    <span class="badge bg-info"><i class="bi bi-person-badge"></i> Administrativa</span>
+                  <% } %>
+                </td>
+                <td>
+                  <span class="badge bg-<%= priorityColors[c.defaultPriority] || 'secondary' %>">
+                    <%= priorityLabels[c.defaultPriority] || 'Média' %>
+                  </span>
+                </td>
+                <td>
+                  <% if (c.slaHours) { %>
+                    <span class="badge bg-primary"><i class="bi bi-clock-history"></i> <%= c.slaHours %>h</span>
+                  <% } else { %>
+                    <span class="text-muted small">Padrão da prioridade</span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (c.ativo) { %>
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Ativa</span>
+                  <% } else { %>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle"></i> Inativa</span>
+                  <% } %>
+                </td>
+                <td class="text-end pe-4">
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editCategory-<%= c.id %>" title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <form method="post" action="/admin/categories/<%= c.id %>/toggle" class="d-inline js-confirm-action"
+                    data-confirm-title="<%= c.ativo ? 'Desativar categoria' : 'Ativar categoria' %>"
+                    data-confirm-message="<%= c.ativo ? 'Desativar ' + c.nome + '? Ela deixará de aparecer para novos chamados.' : 'Ativar ' + c.nome + '?' %>"
+                    data-confirm-confirm="<%= c.ativo ? 'Desativar' : 'Ativar' %>"
+                    data-confirm-variant="btn-<%= c.ativo ? 'warning' : 'success' %>">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-sm btn-outline-<%= c.ativo ? 'warning' : 'success' %> ms-1" type="submit" title="<%= c.ativo ? 'Desativar' : 'Ativar' %>">
+                      <i class="bi bi-<%= c.ativo ? 'pause' : 'play' %>-circle"></i>
+                    </button>
+                  </form>
+                  <% if (!c.system) { %>
+                    <form method="post" action="/admin/categories/<%= c.id %>/delete" class="d-inline js-confirm-action"
+                      data-confirm-title="Excluir categoria"
+                      data-confirm-message="Excluir a categoria <%= c.nome %>? A operação só será concluída se não houver chamados vinculados."
+                      data-confirm-confirm="Excluir categoria"
+                      data-confirm-variant="btn-danger">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="btn btn-sm btn-outline-danger ms-1" type="submit" title="Excluir">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<% categories.forEach(c => { %>
+  <div class="modal fade" id="editCategory-<%= c.id %>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form method="post" action="/admin/categories/<%= c.id %>/update" class="modal-content">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar categoria</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nome da categoria <span class="required-mark">Obrigatório</span></label>
+            <input class="form-control" name="nome" value="<%= c.nome %>" maxlength="120" required <%= c.system ? 'readonly' : '' %>>
+            <% if (c.system) { %>
+              <div class="form-text">Categorias de sistema mantêm o nome original para preservar relatórios históricos.</div>
+            <% } %>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Prioridade padrão</label>
+            <select name="defaultPriority" class="form-select">
+              <% Object.keys(priorityLabels).forEach(priority => { %>
+                <option value="<%= priority %>" <%= priority === c.defaultPriority ? 'selected' : '' %>><%= priorityLabels[priority] %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-0">
+            <label class="form-label">SLA em horas <span class="optional-mark">Opcional</span></label>
+            <input type="number" name="slaHours" class="form-control" value="<%= c.slaHours || '' %>" min="1" max="720" placeholder="Padrão da prioridade">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<% }) %>

@@ -1,0 +1,85 @@
+<section class="login-shell">
+  <div class="login-panel">
+    <div class="login-brand">
+      <div class="brand-mark brand-mark-login" aria-hidden="true">
+        <span class="brand-mark-core"><i class="bi bi-headset"></i></span>
+      </div>
+      <div>
+        <p class="login-kicker mb-1">Gestão de suporte técnico</p>
+        <h1 class="login-title mb-0">Helpdesk TI</h1>
+      </div>
+    </div>
+
+    <p class="login-copy">Entre para continuar no ambiente de suporte.</p>
+
+    <form
+      method="post"
+      action="/login"
+      class="login-form"
+      novalidate
+    >
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+      <div class="mb-3">
+        <label class="form-label" for="loginInput">Login</label>
+        <input
+          class="form-control form-control-lg"
+          id="loginInput"
+          name="login"
+          value="<%= attemptedLogin || '' %>"
+          autocomplete="username"
+          required
+          autofocus
+          placeholder="Seu login de acesso"
+        />
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label" for="passwordInput">Senha</label>
+        <div class="input-group input-group-lg login-password-group">
+          <input
+            class="form-control"
+            id="passwordInput"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required
+            aria-describedby="passwordHelp"
+            placeholder="Sua senha"
+          />
+          <button
+            class="btn btn-outline-secondary js-toggle-password"
+            type="button"
+            data-target="#passwordInput"
+            aria-label="Mostrar senha"
+          >
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+        <div class="form-text" id="passwordHelp">
+          A senha diferencia letras maiúsculas e minúsculas.
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center gap-3 mt-3">
+        <% if (passwordRecoveryEnabled) { %>
+          <a href="/forgot-password" class="login-link">Esqueci minha senha</a>
+        <% } else { %>
+          <span class="text-muted small">Recuperação de senha indisponível</span>
+        <% } %>
+        <button class="btn btn-primary btn-lg px-4" type="submit">
+          Entrar
+          <i class="bi bi-arrow-right-short ms-1"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div
+    class="login-env-badge login-env-badge-<%= appEnvironment %>"
+    aria-label="Ambiente do sistema"
+  >
+    <span class="login-env-dot" aria-hidden="true"></span>
+    <span><%= appEnvironmentLabel %></span>
+  </div>
+</section>

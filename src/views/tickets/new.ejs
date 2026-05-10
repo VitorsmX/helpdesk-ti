@@ -1,0 +1,159 @@
+<% const hasLocations = Array.isArray(locations) && locations.length > 0; %>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <h1 class="h3 mb-1">Abrir novo chamado</h1>
+        <p class="text-muted mb-0">Preencha os dados abaixo para solicitar suporte.</p>
+      </div>
+      <a class="btn btn-outline-secondary btn-sm" href="/tickets/my">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+      </a>
+    </div>
+
+    <div class="card shadow-soft border-0">
+      <div class="card-body p-4 p-md-5">
+
+        <form method="post" action="/tickets/new?_csrf=<%= csrfToken %>" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="row g-4" id="ticketLocationForm" data-current-usf="<%= user.usfId %>">
+
+            <% if (isAdminOrTech) { %>
+            <div class="col-12">
+              <div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>Você está abrindo um chamado em nome de outra unidade. Selecione abaixo.</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">
+                <i class="bi bi-hospital me-1 text-primary"></i> Unidade de Saúde <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building-fill"></i></span>
+                <select class="form-select border-start-0 ps-0" name="usfId" id="ticketUsfSelect" required>
+                  <option value="">Selecione a unidade...</option>
+                  <% usfs.forEach(u => { %>
+                    <option value="<%= u.id %>"><%= u.nome %></option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+            <% } %>
+
+            <div class="col-12 col-md-6 location-managed <%= hasLocations ? '' : 'd-none' %>">
+              <label class="form-label">
+                <i class="bi bi-diagram-3 me-1 text-primary"></i> Setor <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-signpost"></i></span>
+                <select class="form-select border-start-0 ps-0" name="sectorId" id="ticketSectorSelect">
+                  <option value="">Selecione...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6 location-managed <%= hasLocations ? '' : 'd-none' %>">
+              <label class="form-label">
+                <i class="bi bi-geo-alt me-1 text-primary"></i> Sala / Local <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-door-open"></i></span>
+                <select class="form-select border-start-0 ps-0" name="roomId" id="ticketRoomSelect">
+                  <option value="">Selecione...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6 location-legacy <%= hasLocations ? 'd-none' : '' %>">
+              <label class="form-label">
+                <i class="bi bi-geo-alt me-1 text-primary"></i> Sala / Local <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building"></i></span>
+                <select class="form-select border-start-0 ps-0" name="room" id="ticketLegacyRoomSelect" <%= hasLocations ? '' : 'required' %>>
+                  <option value="">Selecione...</option>
+                  <% rooms.forEach(r=> { %>
+                    <option value="<%= r %>"><%= translateRoom(r) %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="form-text">Cadastre setores e salas no admin para detalhar este campo.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">
+                <i class="bi bi-tags me-1 text-primary"></i> Categoria <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-grid"></i></span>
+                <select class="form-select border-start-0 ps-0" name="categoryId" required>
+                  <option value="">Selecione...</option>
+                  <% categories.forEach(c=> { %>
+                    <option value="<%= c.id %>">
+                      <%= c.nome %><%= c.system ? ' (Padrão)' : '' %>
+                    </option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">
+                <i class="bi bi-chat-square-text me-1 text-primary"></i> Título do problema
+              </label>
+              <input class="form-control form-control-lg" name="title" maxlength="140" placeholder="Ex: Internet lenta..." required />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">
+                <i class="bi bi-text-paragraph me-1 text-primary"></i> Descrição detalhada
+              </label>
+              <textarea class="form-control" name="description" rows="5" maxlength="10000"
+                placeholder="Descreva o que está acontecendo com o máximo de detalhes possível..." required></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">
+                <i class="bi bi-paperclip me-1 text-primary"></i> Anexos <span
+                  class="text-muted fw-normal small">(Opcional)</span>
+              </label>
+              <div class="p-4 border rounded-3 bg-light text-center border-dashed">
+                <i class="bi bi-cloud-arrow-up display-6 text-muted mb-2"></i>
+                <div class="mb-3 text-muted small">Clique para selecionar arquivos ou arraste aqui</div>
+                <input class="form-control" type="file" name="attachments" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple />
+                <div class="form-text mt-2">Formatos permitidos: JPG, PNG, WEBP e PDF. Máximo de 8MB por arquivo.</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5">
+            <a class="btn btn-light text-muted px-4" href="/tickets/my">Cancelar</a>
+            <button class="btn btn-primary px-5 py-2" type="submit">
+              <i class="bi bi-send me-2"></i> Abrir chamado
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="ticketLocationsData" nonce="<%= cspNonce %>"><%- safeJsonForScript(locations || []) %></script>
+<script src="<%= asset('/public/tickets-new.js') %>"></script>
+
+<style>
+  .border-dashed {
+    border-style: dashed !important;
+  }
+
+  .input-group-text {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+</style>

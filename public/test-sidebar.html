@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste Sidebar</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="/public/app.css" rel="stylesheet">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <i class="bi bi-asterisk text-primary fs-3"></i>
+      <span class="sidebar-brand">Helpdesk TI</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Monitoring Accordion -->
+      <button class="sidebar-accordion-header" id="monitoringAccordion" type="button">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span>Monitoramento</span>
+        <i class="bi bi-chevron-down chevron"></i>
+      </button>
+      <div class="sidebar-accordion-content" id="monitoringContent">
+        <!-- SLA Estourado -->
+        <a class="sidebar-link" href="/admin/sla-breached">
+          <i class="bi bi-clock-history text-danger"></i>
+          <span>SLA Estourado</span>
+          <span class="sidebar-badge bg-danger">3</span>
+        </a>
+        
+        <!-- Equipamentos Condenados -->
+        <a class="sidebar-link" href="/admin/condemned-assets">
+          <i class="bi bi-trash text-warning"></i>
+          <span>Equipamentos Condenados</span>
+        </a>
+        
+        <!-- Aguardando Peças -->
+        <a class="sidebar-link" href="/admin/waiting-parts">
+          <i class="bi bi-hourglass-split text-info"></i>
+          <span>Aguardando Peças</span>
+          <span class="sidebar-badge bg-warning">5</span>
+        </a>
+        
+        <!-- Logs de Auditoria -->
+        <a class="sidebar-link" href="/admin/audit-logs">
+          <i class="bi bi-shield-check text-success"></i>
+          <span>Logs de Auditoria</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <main style="margin-left: 80px; padding: 2rem;">
+    <h1>Teste do Menu Lateral</h1>
+    <p>Clique em "Monitoramento" no menu lateral para testar o accordion.</p>
+    <p>Passe o mouse sobre o sidebar para ver os badges.</p>
+  </main>
+
+  <script>
+    // Accordion functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const accordionHeader = document.getElementById('monitoringAccordion');
+      const accordionContent = document.getElementById('monitoringContent');
+      
+      if (accordionHeader && accordionContent) {
+        console.log('Accordion elements found!');
+        
+        // Load saved state from localStorage
+        const isCollapsed = localStorage.getItem('monitoringAccordionCollapsed') === 'true';
+        
+        if (isCollapsed) {
+          accordionHeader.classList.add('collapsed');
+          accordionContent.classList.add('collapsed');
+        }
+        
+        // Toggle on click
+        accordionHeader.addEventListener('click', function() {
+          console.log('Accordion clicked!');
+          const collapsed = accordionHeader.classList.toggle('collapsed');
+          accordionContent.classList.toggle('collapsed');
+          
+          // Save state to localStorage
+          localStorage.setItem('monitoringAccordionCollapsed', collapsed);
+          console.log('Accordion state:', collapsed ? 'collapsed' : 'expanded');
+        });
+      } else {
+        console.error('Accordion elements not found!', {
+          header: accordionHeader,
+          content: accordionContent
+        });
+      }
+    });
+  </script>
+</body>
+</html>

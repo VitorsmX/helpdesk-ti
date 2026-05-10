@@ -1,0 +1,205 @@
+<%
+  const roomName = ticket.roomRef?.nome || translateRoom(ticket.room);
+  const sectorName = ticket.sector?.nome || 'Sem setor';
+  const usedItems = ticket.insumosUtilizados || [];
+  const usageRows = Math.max(3, usedItems.length + 1);
+%>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h4 mb-1">Atender chamado #<%= ticket.id %></h1>
+    <div class="text-secondary small">
+      Unidade: <%= ticket.usf?.nome %> |
+      Setor: <%= sectorName %> |
+      Sala: <%= roomName %> |
+      Categoria: <%= ticket.category?.nome %>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <span class="badge <%= statusBadgeClass(ticket.status) %>"><%= translateStatus(ticket.status) %></span>
+    <span class="badge <%= priorityBadgeClass(ticket.priority) %>"><%= translatePriority(ticket.priority) %></span>
+    <a class="btn btn-outline-secondary btn-sm" href="/tickets/<%= ticket.id %>">Ver detalhe</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">Atribuição</div>
+      <div class="card-body">
+        <form method="post" action="/tech/tickets/<%= ticket.id %>/assign">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="mb-3">
+            <label class="form-label">Responsável</label>
+            <select class="form-select" name="assigneeId">
+              <option value="">Não atribuído</option>
+              <% techs.forEach(t => { %>
+                <option value="<%= t.id %>" <%= ticket.assigneeId === t.id ? 'selected' : '' %>><%= t.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit">Salvar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header fw-semibold">Atualizar atendimento</div>
+      <div class="card-body">
+        <form method="post" action="/tech/tickets/<%= ticket.id %>/update">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-select" name="status" required>
+                <% ['OPEN','IN_PROGRESS','WAITING','RESOLVED','CLOSED'].forEach(s => { %>
+                  <option value="<%= s %>" <%= ticket.status === s ? 'selected' : '' %>><%= translateStatus(s) %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Prioridade <span class="text-danger">*</span></label>
+              <select class="form-select" name="priority" required>
+                <% ['LOW','MEDIUM','HIGH','URGENT'].forEach(p => { %>
+                  <option value="<%= p %>" <%= ticket.priority === p ? 'selected' : '' %>><%= translatePriority(p) %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Resolução <span class="text-muted">(obrigatória ao resolver/fechar)</span></label>
+              <select class="form-select" name="resolution">
+                <option value="">Não definido</option>
+                <% [
+                  'RESOLVIDO_SEM_TROCA_PECA',
+                  'RESOLVIDO_COM_TROCA_PECA',
+                  'AGUARDANDO_PECA_SEM_ESTOQUE',
+                  'SEM_REPARO_EQUIPAMENTO_CONDENADO',
+                  'ENCAMINHADO_TERCEIROS'
+                ].forEach(r => { %>
+                  <option value="<%= r %>" <%= ticket.resolution === r ? 'selected' : '' %>><%= r %></option>
+                <% }) %>
+              </select>
+              <div class="form-text">Ao escolher "Aguardando peça sem estoque", o sistema mantém o chamado em Aguardando.</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Peça(s) utilizada(s) <span class="text-muted">(descrição livre opcional)</span></label>
+              <input class="form-control" name="trocaPecas" value="<%= ticket.trocaPecas || '' %>" placeholder="Ex: Fonte ATX, cabo de rede, toner...">
+            </div>
+
+            <div class="col-12">
+              <div class="border rounded p-3 bg-light">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                  <div>
+                    <div class="fw-semibold">Baixa automática de estoque</div>
+                    <div class="text-muted small">Preencha quando a resolução for "RESOLVIDO_COM_TROCA_PECA". O estoque será ajustado ao salvar.</div>
+                  </div>
+                  <% if (usedItems.length) { %>
+                    <span class="badge bg-success"><%= usedItems.length %> item(ns) registrado(s)</span>
+                  <% } %>
+                </div>
+
+                <% if (!insumos.length) { %>
+                  <div class="alert alert-warning mb-0">Nenhum insumo cadastrado no estoque.</div>
+                <% } else { %>
+                  <% for (let i = 0; i < usageRows; i += 1) { 
+                    const usage = usedItems[i];
+                  %>
+                    <div class="row g-2 align-items-end mb-2">
+                      <div class="col-md-8">
+                        <label class="form-label small mb-1">Insumo</label>
+                        <select class="form-select" name="insumoId">
+                          <option value="">Selecione...</option>
+                          <% insumos.forEach(item => { 
+                            const selected = usage && usage.insumoId === item.id;
+                            const available = item.quantidadeAtual + (selected ? usage.quantidade : 0);
+                          %>
+                            <option value="<%= item.id %>" <%= selected ? 'selected' : '' %>>
+                              <%= item.nome %> (<%= item.tipo %>) - disponível: <%= available %>
+                            </option>
+                          <% }) %>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label small mb-1">Quantidade</label>
+                        <input class="form-control" type="number" min="0" step="1" name="insumoQuantidade" value="<%= usage?.quantidade || '' %>">
+                      </div>
+                    </div>
+                  <% } %>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Data da troca <span class="text-muted">(quando houver troca)</span></label>
+              <input class="form-control" type="date" name="trocaData"
+                value="<%= ticket.trocaData ? new Date(ticket.trocaData).toISOString().slice(0,10) : '' %>">
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">Patrimônio <span class="text-muted">(opcional)</span></label>
+              <input class="form-control" name="equipamentoPatrimonio" value="<%= ticket.equipamentoPatrimonio || '' %>">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Justificativa <span class="text-muted">(quando sem reparo)</span></label>
+              <textarea class="form-control" name="resolutionJustificativa" rows="3"><%= ticket.resolutionJustificativa || '' %></textarea>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Ação recomendada <span class="text-muted">(quando sem reparo)</span></label>
+              <textarea class="form-control" name="resolutionAcaoRecomendada" rows="3"><%= ticket.resolutionAcaoRecomendada || '' %></textarea>
+            </div>
+          </div>
+
+          <hr class="my-3">
+          <button class="btn btn-primary" type="submit">Aplicar alterações</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="card-header fw-semibold">SLA</div>
+      <div class="card-body">
+        <div class="text-secondary small">
+          Primeira resposta até: <%= fmtDateBR(ticket.responseDueAt) %>
+          <% if (ticket.responseBreachedAt) { %> | <span class="text-danger">Estourado</span><% } %>
+        </div>
+        <div class="text-secondary small">
+          Resolução até: <%= fmtDateBR(ticket.resolutionDueAt) %>
+          <% if (ticket.resolutionBreachedAt) { %> | <span class="text-danger">Estourado</span><% } %>
+          <% if (ticket.slaPausedAt) { %> | <span class="text-warning">Pausado</span><% } %>
+        </div>
+      </div>
+    </div>
+
+    <% if (usedItems.length) { %>
+      <div class="card mt-3">
+        <div class="card-header fw-semibold">Insumos utilizados</div>
+        <div class="card-body p-0">
+          <ul class="list-group list-group-flush">
+            <% usedItems.forEach(item => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><%= item.insumo?.nome || 'Insumo' %></span>
+                <span class="badge bg-primary rounded-pill"><%= item.quantidade %></span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="card mt-3">
+      <div class="card-header fw-semibold">Conversa do chamado</div>
+      <div class="card-body">
+        <a class="btn btn-outline-primary w-100" href="/tickets/<%= ticket.id %>">Abrir conversa e anexos</a>
+      </div>
+    </div>
+  </div>
+</div>

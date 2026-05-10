@@ -1,0 +1,545 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">
+      <i class="bi bi-pc-display text-primary"></i> Inventário de Hardware
+    </h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreate">
+      <i class="bi bi-plus-circle"></i> Adicionar Equipamento
+    </button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card shadow mb-4">
+    <div class="card-body">
+      <form method="GET" action="/hardware" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Unidade de Saúde (USF)</label>
+          <select name="usfId" class="form-select">
+            <option value="all" <%= filters.usfId === 'all' ? 'selected' : '' %>>Todas as USFs</option>
+            <% usfs.forEach(usf => { %>
+              <option value="<%= usf.id %>" <%= filters.usfId == usf.id ? 'selected' : '' %>>
+                <%= usf.nome %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Número de Patrimônio</label>
+          <input type="text" name="patrimonio" class="form-control" placeholder="Buscar por patrimônio..." value="<%= filters.patrimonio %>">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="bi bi-search"></i> Filtrar
+          </button>
+          <a href="/hardware" class="btn btn-outline-secondary">
+            <i class="bi bi-x-circle"></i> Limpar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabela de Hardware -->
+  <div class="card shadow">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="bi bi-list-ul"></i> Equipamentos Cadastrados (<%= hardwares.length %>)
+      </h6>
+    </div>
+    <div class="card-body">
+      <% if (hardwares.length === 0) { %>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Nenhum hardware encontrado com os filtros aplicados.
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table hardware-table">
+            <thead>
+              <tr>
+                <th style="width: 110px;">Patrimônio</th>
+                <th>USF / Sala</th>
+                <th>Tipo</th>
+                <th>Modelo</th>
+                <th style="width: 110px;">AnyDesk</th>
+                <th style="width: 100px;">Status</th>
+                <th class="text-end" style="width: 100px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% hardwares.forEach(hw => { %>
+                <tr>
+                  <td><strong><%= hw.patrimonio %></strong></td>
+                  <td>
+                    <div><%= hw.usf.nome %></div>
+                    <small class="text-muted">
+                      <i class="bi <%= getRoomIcon(hw.sala) %>" style="font-size: 0.85rem;"></i>
+                      <%= translateRoom(hw.sala) %>
+                    </small>
+                  </td>
+                  <td><%= hw.tipo %></td>
+                  <td><%= hw.modelo || '-' %></td>
+                  <td>
+                    <% if (hw.anydesk) { %>
+                      <code class="hardware-anydesk"><%= hw.anydesk %></code>
+                    <% } else { %>
+                      <span class="text-muted">-</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <span class="badge <%= getStatusBadgeClass(hw.status) %>">
+                      <%= translateHardwareStatus(hw.status) %>
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button class="btn btn-info btn-xs btn-edit-hw" 
+                              data-hw="<%= JSON.stringify(hw) %>" 
+                              data-usfs="<%= JSON.stringify(usfs) %>" 
+                              title="Editar">
+                        <i class="bi bi-pencil text-white" style="font-size: 0.8rem;"></i>
+                      </button>
+                      <button class="btn btn-warning btn-xs btn-move-hw" 
+                              data-id="<%= hw.id %>" 
+                              data-patrimonio="<%= hw.patrimonio %>" 
+                              data-usfs="<%= JSON.stringify(usfs) %>" 
+                              title="Mover">
+                        <i class="bi bi-arrow-left-right text-white" style="font-size: 0.8rem;"></i>
+                      </button>
+                      <button class="btn btn-danger btn-xs btn-delete-hw" 
+                              data-id="<%= hw.id %>" 
+                              data-patrimonio="<%= hw.patrimonio %>" 
+                              title="Excluir">
+                        <i class="bi bi-trash text-white" style="font-size: 0.8rem;"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Criar Hardware -->
+<div class="modal fade" id="modalCreate" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="/hardware">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Adicionar Hardware</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Patrimônio <span class="text-muted fw-normal">(opcional)</span></label>
+            <input type="text" name="patrimonio" class="form-control" placeholder="Ex: 00123">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">USF *</label>
+            <select name="usfId" class="form-select" required>
+              <option value="">Selecione...</option>
+              <% usfs.forEach(usf => { %>
+                <option value="<%= usf.id %>"><%= usf.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Sala *</label>
+            <select name="sala" class="form-select" required>
+              <option value="">Selecione...</option>
+              <option value="RECEPCAO">Recepção</option>
+              <option value="ENFERMAGEM">Enfermagem</option>
+              <option value="MEDICO">Médico</option>
+              <option value="REUNIAO">Reunião</option>
+              <option value="VACINA">Vacina</option>
+              <option value="TRIAGEM">Triagem</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tipo *</label>
+            <input type="text" name="tipo" class="form-control" placeholder="Ex: Computador, Impressora..." required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Modelo</label>
+            <input type="text" name="modelo" class="form-control" placeholder="Ex: Dell Optiplex 3070">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">AnyDesk</label>
+            <input type="text" name="anydesk" class="form-control" placeholder="Ex: 123456789">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              <option value="ATIVO">Ativo</option>
+              <option value="MANUTENCAO">Manutenção</option>
+              <option value="PERCA_TOTAL">Perca Total</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Observações</label>
+            <textarea name="observacoes" class="form-control" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Hardware -->
+<div class="modal fade" id="modalEdit" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formEdit">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Hardware</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="editModalBody">
+          <!-- Conteúdo será preenchido via JS -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Atualizar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mover Hardware -->
+<div class="modal fade" id="modalMove" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formMove">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-arrow-left-right"></i> Mover Hardware</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Mover equipamento <strong id="movePatrimonio"></strong> para:</p>
+          <div class="mb-3">
+            <label class="form-label">Nova USF *</label>
+            <select name="usfId" class="form-select" id="moveUsfSelect" required>
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nova Sala *</label>
+            <select name="sala" class="form-select" required>
+              <option value="">Selecione...</option>
+              <option value="RECEPCAO">Recepção</option>
+              <option value="ENFERMAGEM">Enfermagem</option>
+              <option value="MEDICO">Médico</option>
+              <option value="REUNIAO">Reunião</option>
+              <option value="VACINA">Vacina</option>
+              <option value="TRIAGEM">Triagem</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">Mover</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal fade" id="modalDelete" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="formDelete">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Tem certeza que deseja excluir o equipamento <strong id="deletePatrimonio"></strong>?</p>
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Esta ação não pode ser desfeita!
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Excluir</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" data-disabled-inline-script="hardware-modals" nonce="<%= cspNonce %>">
+// Helper functions
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getRoomIcon(room) {
+  const icons = {
+    'RECEPCAO': 'bi-door-open',
+    'ENFERMAGEM': 'bi-heart-pulse',
+    'MEDICO': 'bi-hospital',
+    'REUNIAO': 'bi-people',
+    'VACINA': 'bi-shield-plus',
+    'TRIAGEM': 'bi-clipboard2-pulse'
+  };
+  return icons[room] || 'bi-geo-alt';
+}
+
+function translateRoom(room) {
+  const translations = {
+    'RECEPCAO': 'Recepção',
+    'ENFERMAGEM': 'Enfermagem',
+    'MEDICO': 'Médico',
+    'REUNIAO': 'Reunião',
+    'VACINA': 'Vacina',
+    'TRIAGEM': 'Triagem'
+  };
+  return translations[room] || room;
+}
+
+function getStatusBadgeClass(status) {
+  const classes = {
+    'ATIVO': 'bg-success',
+    'MANUTENCAO': 'bg-warning text-dark',
+    'PERCA_TOTAL': 'bg-danger'
+  };
+  return classes[status] || 'bg-secondary';
+}
+
+function translateStatus(status) {
+  const translations = {
+    'ATIVO': 'Ativo',
+    'MANUTENCAO': 'Manutenção',
+    'PERCA_TOTAL': 'Perca Total'
+  };
+  return translations[status] || status;
+}
+
+function openEditModal(hw, usfs) {
+  const form = document.getElementById('formEdit');
+  form.action = `/hardware/${hw.id}/update`;
+  
+  const body = document.getElementById('editModalBody');
+  body.innerHTML = `
+    <div class="mb-3">
+      <label class="form-label">Patrimônio <span class="text-muted fw-normal small">(opcional)</span></label>
+      <input type="text" name="patrimonio" class="form-control" value="${escapeHtml(hw.patrimonio || '')}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">USF *</label>
+      <select name="usfId" class="form-select" required>
+        ${usfs.map(usf => `<option value="${usf.id}" ${usf.id === hw.usfId ? 'selected' : ''}>${escapeHtml(usf.nome)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Sala *</label>
+      <select name="sala" class="form-select" required>
+        <option value="RECEPCAO" ${hw.sala === 'RECEPCAO' ? 'selected' : ''}>Recepção</option>
+        <option value="ENFERMAGEM" ${hw.sala === 'ENFERMAGEM' ? 'selected' : ''}>Enfermagem</option>
+        <option value="MEDICO" ${hw.sala === 'MEDICO' ? 'selected' : ''}>Médico</option>
+        <option value="REUNIAO" ${hw.sala === 'REUNIAO' ? 'selected' : ''}>Reunião</option>
+        <option value="VACINA" ${hw.sala === 'VACINA' ? 'selected' : ''}>Vacina</option>
+        <option value="TRIAGEM" ${hw.sala === 'TRIAGEM' ? 'selected' : ''}>Triagem</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Tipo *</label>
+      <input type="text" name="tipo" class="form-control" value="${escapeHtml(hw.tipo)}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Modelo</label>
+      <input type="text" name="modelo" class="form-control" value="${escapeHtml(hw.modelo || '')}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">AnyDesk</label>
+      <input type="text" name="anydesk" class="form-control" value="${escapeHtml(hw.anydesk || '')}">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-select">
+        <option value="ATIVO" ${hw.status === 'ATIVO' ? 'selected' : ''}>Ativo</option>
+        <option value="MANUTENCAO" ${hw.status === 'MANUTENCAO' ? 'selected' : ''}>Manutenção</option>
+        <option value="PERCA_TOTAL" ${hw.status === 'PERCA_TOTAL' ? 'selected' : ''}>Perca Total</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Observações</label>
+      <textarea name="observacoes" class="form-control" rows="3">${escapeHtml(hw.observacoes || '')}</textarea>
+    </div>
+  `;
+  
+  new bootstrap.Modal(document.getElementById('modalEdit')).show();
+}
+
+function openMoveModal(id, patrimonio, usfs) {
+  const form = document.getElementById('formMove');
+  form.action = `/hardware/${id}/move`;
+  
+  document.getElementById('movePatrimonio').textContent = patrimonio;
+  
+  const select = document.getElementById('moveUsfSelect');
+  select.innerHTML = '<option value="">Selecione...</option>' + 
+    usfs.map(usf => `<option value="${usf.id}">${escapeHtml(usf.nome)}</option>`).join('');
+  
+  new bootstrap.Modal(document.getElementById('modalMove')).show();
+}
+
+function openDeleteModal(id, patrimonio) {
+  const form = document.getElementById('formDelete');
+  form.action = `/hardware/${id}/delete`;
+  
+  document.getElementById('deletePatrimonio').textContent = patrimonio;
+  
+  new bootstrap.Modal(document.getElementById('modalDelete')).show();
+}
+
+// Event listeners para os botões
+(function() {
+  console.log('Inicializando event listeners do hardware...');
+  
+  // Função para decodificar HTML entities
+  function decodeHTMLEntities(text) {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  }
+  
+  // Aguardar o DOM estar pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initListeners);
+  } else {
+    initListeners();
+  }
+  
+  function initListeners() {
+    console.log('DOM pronto, configurando listeners...');
+    
+    // Botões de editar
+    const editButtons = document.querySelectorAll('.btn-edit-hw');
+    console.log(`Encontrados ${editButtons.length} botões de editar`);
+    
+    editButtons.forEach(function(btn, index) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log(`Botão editar ${index} clicado`);
+        try {
+          const hwData = decodeHTMLEntities(this.getAttribute('data-hw'));
+          const usfsData = decodeHTMLEntities(this.getAttribute('data-usfs'));
+          console.log('Dados hw decodificados:', hwData ? 'OK' : 'VAZIO');
+          console.log('Dados usfs decodificados:', usfsData ? 'OK' : 'VAZIO');
+          
+          const hw = JSON.parse(hwData);
+          const usfs = JSON.parse(usfsData);
+          console.log('Parse bem-sucedido! Abrindo modal...');
+          openEditModal(hw, usfs);
+        } catch (error) {
+          console.error('Erro ao abrir modal de edição:', error);
+          alert('Erro ao abrir modal de edição. Verifique o console.');
+        }
+      });
+    });
+    
+    // Botões de mover
+    const moveButtons = document.querySelectorAll('.btn-move-hw');
+    console.log(`Encontrados ${moveButtons.length} botões de mover`);
+    
+    moveButtons.forEach(function(btn, index) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log(`Botão mover ${index} clicado`);
+        try {
+          const id = parseInt(this.getAttribute('data-id'));
+          const patrimonio = this.getAttribute('data-patrimonio');
+          const usfsData = decodeHTMLEntities(this.getAttribute('data-usfs'));
+          console.log('ID:', id, 'Patrimônio:', patrimonio);
+          console.log('Dados usfs decodificados:', usfsData ? 'OK' : 'VAZIO');
+          
+          const usfs = JSON.parse(usfsData);
+          console.log('Parse bem-sucedido! Abrindo modal...');
+          openMoveModal(id, patrimonio, usfs);
+        } catch (error) {
+          console.error('Erro ao abrir modal de mover:', error);
+          alert('Erro ao abrir modal de mover. Verifique o console.');
+        }
+      });
+    });
+    
+    // Botões de excluir
+    const deleteButtons = document.querySelectorAll('.btn-delete-hw');
+    console.log(`Encontrados ${deleteButtons.length} botões de excluir`);
+    
+    deleteButtons.forEach(function(btn, index) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log(`Botão excluir ${index} clicado`);
+        try {
+          const id = parseInt(this.getAttribute('data-id'));
+          const patrimonio = this.getAttribute('data-patrimonio');
+          console.log('ID:', id, 'Patrimônio:', patrimonio);
+          
+          openDeleteModal(id, patrimonio);
+        } catch (error) {
+          console.error('Erro ao abrir modal de exclusão:', error);
+          alert('Erro ao abrir modal de exclusão. Verifique o console.');
+        }
+      });
+    });
+    
+    console.log('Todos os listeners configurados!');
+  }
+})();
+</script>
+<script src="<%= asset('/public/hardware-modals.js') %>"></script>
+
+<style>
+.hardware-anydesk {
+  background-color: #f0f0f0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #2563eb;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.hardware-room-icon {
+  color: #4e73df;
+  margin-right: 0.25rem;
+}
+
+.hardware-table tbody tr {
+  transition: all 0.2s;
+}
+
+.hardware-table tbody tr:hover {
+  background-color: rgba(78, 115, 223, 0.05);
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  border-radius: 0.2rem;
+}
+</style>

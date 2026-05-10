@@ -1,0 +1,49 @@
+<h1 class="h3 mb-4 text-gray-800">Validação de Equipamentos</h1>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle-fill"></i> Esta lista exibe chamados encerrados como <strong>"Sem Reparo / Equipamento Condenado"</strong>.
+    O Admin deve analisar e validar a compra de peças ou substituição.
+</div>
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-danger">Aguardando Validação/Compra</h6>
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-bordered" width="100%" cellspacing="0">
+        <thead>
+          <tr>
+            <th>Ticket</th>
+            <th>Data Resolução</th>
+            <th>Unidade</th>
+            <th>Equipamento (Patrimônio)</th>
+            <th>Técnico Responsável</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (tickets.length === 0) { %>
+            <tr><td colspan="6" class="text-center text-muted">Nenhum equipamento condenado pendente.</td></tr>
+          <% } else { %>
+            <% tickets.forEach(t => { %>
+              <tr>
+                <td><a href="/tickets/<%= t.id %>">#<%= t.id %> - <%= t.title %></a></td>
+                <td><%= new Date(t.resolvedAt).toLocaleDateString() %></td>
+                <td><%= t.usf ? t.usf.nome : '-' %></td>
+                <td><%= t.equipamentoPatrimonio || 'N/A' %></td>
+                <td><%= t.assignee ? t.assignee.nome : '-' %></td>
+                <td>
+                    <!-- Apenas visualização por enquanto, fluxo de budget futuro -->
+                    <a href="/tickets/<%= t.id %>" class="btn btn-sm btn-primary">
+                        <i class="bi bi-eye"></i> Analisar
+                    </a>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

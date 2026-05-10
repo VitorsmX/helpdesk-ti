@@ -1,0 +1,244 @@
+<div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-diagram-3 text-primary"></i> Setores e salas
+    </h1>
+    <p class="text-muted mb-0">Detalhe a estrutura das unidades para melhorar SLA, triagem e relatórios.</p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-5">
+    <div class="card shadow h-100">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Novo setor</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" action="/admin/locations/sectors">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="mb-3">
+            <label class="form-label">Unidade <span class="required-mark">Obrigatório</span></label>
+            <select class="form-select" name="usfId" required>
+              <option value="">Selecione...</option>
+              <% usfs.forEach(usf => { %>
+                <option value="<%= usf.id %>"><%= usf.nome %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nome do setor <span class="required-mark">Obrigatório</span></label>
+            <input class="form-control" name="nome" maxlength="120" placeholder="Ex: Administrativo, Assistencial" required>
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Cadastrar setor</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card shadow h-100">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Nova sala</h6>
+      </div>
+      <div class="card-body">
+        <form method="post" action="/admin/locations/rooms">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <label class="form-label">Setor <span class="required-mark">Obrigatório</span></label>
+              <select class="form-select" name="sectorId" required>
+                <option value="">Selecione...</option>
+                <% usfs.forEach(usf => { %>
+                  <% usf.sectors.forEach(sector => { %>
+                    <option value="<%= sector.id %>"><%= usf.nome %> / <%= sector.nome %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Nome da sala <span class="required-mark">Obrigatório</span></label>
+              <input class="form-control" name="nome" maxlength="120" placeholder="Ex: Sala 01" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Grupo SLA <span class="required-mark">Obrigatório</span></label>
+              <select class="form-select" name="legacyRoom">
+                <% legacyRooms.forEach(room => { %>
+                  <option value="<%= room %>" <%= room === 'OUTRO' ? 'selected' : '' %>><%= translateRoom(room) %></option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3" type="submit">Cadastrar sala</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Estrutura cadastrada</h6>
+  </div>
+  <div class="card-body">
+    <% if (!usfs.length) { %>
+      <div class="text-muted">Nenhuma unidade cadastrada.</div>
+    <% } else { %>
+      <div class="accordion" id="locationsAccordion">
+        <% usfs.forEach((usf, index) => { %>
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button <%= index === 0 ? '' : 'collapsed' %>" type="button" data-bs-toggle="collapse" data-bs-target="#unit-<%= usf.id %>">
+                <span class="fw-semibold"><%= usf.nome %></span>
+                <span class="badge bg-light text-dark border ms-2"><%= usf.sectors.length %> setor(es)</span>
+              </button>
+            </h2>
+            <div id="unit-<%= usf.id %>" class="accordion-collapse collapse <%= index === 0 ? 'show' : '' %>" data-bs-parent="#locationsAccordion">
+              <div class="accordion-body">
+                <% if (!usf.sectors.length) { %>
+                  <div class="text-muted">Sem setores cadastrados.</div>
+                <% } else { %>
+                  <% usf.sectors.forEach(sector => { %>
+                    <div class="border rounded-3 p-3 mb-3 bg-white">
+                      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                        <div>
+                          <strong><%= sector.nome %></strong>
+                          <span class="badge <%= sector.ativo ? 'bg-success' : 'bg-secondary' %> ms-2"><%= sector.ativo ? 'Ativo' : 'Inativo' %></span>
+                        </div>
+                        <div class="d-flex gap-2">
+                          <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editSector-<%= sector.id %>">
+                            <i class="bi bi-pencil-square"></i> Editar
+                          </button>
+                          <form method="post" action="/admin/locations/sectors/<%= sector.id %>/toggle" class="js-confirm-action"
+                            data-confirm-title="<%= sector.ativo ? 'Desativar setor' : 'Ativar setor' %>"
+                            data-confirm-message="<%= sector.ativo ? 'Desativar o setor ' + sector.nome + '?' : 'Ativar o setor ' + sector.nome + '?' %>"
+                            data-confirm-confirm="<%= sector.ativo ? 'Desativar' : 'Ativar' %>"
+                            data-confirm-variant="btn-<%= sector.ativo ? 'warning' : 'success' %>">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit"><%= sector.ativo ? 'Desativar' : 'Ativar' %></button>
+                          </form>
+                          <form method="post" action="/admin/locations/sectors/<%= sector.id %>/delete" class="js-confirm-action"
+                            data-confirm-title="Excluir setor"
+                            data-confirm-message="Excluir o setor <%= sector.nome %>? A operação só será concluída se não houver salas, chamados ou equipamentos vinculados."
+                            data-confirm-confirm="Excluir setor"
+                            data-confirm-variant="btn-danger">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button class="btn btn-sm btn-outline-danger" type="submit"><i class="bi bi-trash"></i></button>
+                          </form>
+                        </div>
+                      </div>
+
+                      <% if (!sector.rooms.length) { %>
+                        <div class="text-muted small">Sem salas cadastradas.</div>
+                      <% } else { %>
+                        <div class="table-responsive">
+                          <table class="table table-sm align-middle mb-0">
+                            <thead>
+                              <tr>
+                                <th>Sala</th>
+                                <th>Grupo SLA</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <% sector.rooms.forEach(room => { %>
+                                <tr>
+                                  <td><%= room.nome %></td>
+                                  <td><span class="badge bg-light text-dark border"><%= translateRoom(room.legacyRoom || 'OUTRO') %></span></td>
+                                  <td><span class="badge <%= room.ativo ? 'bg-success' : 'bg-secondary' %>"><%= room.ativo ? 'Ativa' : 'Inativa' %></span></td>
+                                  <td class="text-end">
+                                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editRoom-<%= room.id %>" title="Editar">
+                                      <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <form method="post" action="/admin/locations/rooms/<%= room.id %>/toggle" class="d-inline js-confirm-action"
+                                      data-confirm-title="<%= room.ativo ? 'Desativar sala' : 'Ativar sala' %>"
+                                      data-confirm-message="<%= room.ativo ? 'Desativar a sala ' + room.nome + '?' : 'Ativar a sala ' + room.nome + '?' %>"
+                                      data-confirm-confirm="<%= room.ativo ? 'Desativar' : 'Ativar' %>"
+                                      data-confirm-variant="btn-<%= room.ativo ? 'warning' : 'success' %>">
+                                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                      <button class="btn btn-sm btn-outline-secondary ms-1" type="submit"><%= room.ativo ? 'Desativar' : 'Ativar' %></button>
+                                    </form>
+                                    <form method="post" action="/admin/locations/rooms/<%= room.id %>/delete" class="d-inline js-confirm-action"
+                                      data-confirm-title="Excluir sala"
+                                      data-confirm-message="Excluir a sala <%= room.nome %>? A operação só será concluída se não houver chamados ou equipamentos vinculados."
+                                      data-confirm-confirm="Excluir sala"
+                                      data-confirm-variant="btn-danger">
+                                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                      <button class="btn btn-sm btn-outline-danger ms-1" type="submit"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                  </td>
+                                </tr>
+                              <% }) %>
+                            </tbody>
+                          </table>
+                        </div>
+                      <% } %>
+                    </div>
+                  <% }) %>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<% usfs.forEach(usf => { %>
+  <% usf.sectors.forEach(sector => { %>
+    <div class="modal fade" id="editSector-<%= sector.id %>" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <form method="post" action="/admin/locations/sectors/<%= sector.id %>/update" class="modal-content">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar setor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-3"><%= usf.nome %></p>
+            <label class="form-label">Nome do setor <span class="required-mark">Obrigatório</span></label>
+            <input class="form-control" name="nome" value="<%= sector.nome %>" maxlength="120" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <% sector.rooms.forEach(room => { %>
+      <div class="modal fade" id="editRoom-<%= room.id %>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <form method="post" action="/admin/locations/rooms/<%= room.id %>/update" class="modal-content">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar sala</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3"><%= usf.nome %> / <%= sector.nome %></p>
+              <div class="mb-3">
+                <label class="form-label">Nome da sala <span class="required-mark">Obrigatório</span></label>
+                <input class="form-control" name="nome" value="<%= room.nome %>" maxlength="120" required>
+              </div>
+              <div>
+                <label class="form-label">Grupo SLA <span class="required-mark">Obrigatório</span></label>
+                <select class="form-select" name="legacyRoom">
+                  <% legacyRooms.forEach(option => { %>
+                    <option value="<%= option %>" <%= option === (room.legacyRoom || 'OUTRO') ? 'selected' : '' %>><%= translateRoom(option) %></option>
+                  <% }) %>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary">Salvar alterações</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  <% }) %>
+<% }) %>

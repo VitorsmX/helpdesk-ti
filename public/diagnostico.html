@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Diagnóstico do Menu</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .test-box { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .success { color: green; }
+    .error { color: red; }
+    .warning { color: orange; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Diagnóstico do Menu Lateral</h1>
+  
+  <div class="test-box">
+    <h2>1. Verificação do Servidor</h2>
+    <p id="server-status">Testando conexão...</p>
+  </div>
+  
+  <div class="test-box">
+    <h2>2. Verificação do CSS</h2>
+    <p id="css-status">Verificando arquivo CSS...</p>
+  </div>
+  
+  <div class="test-box">
+    <h2>3. Instruções</h2>
+    <ol>
+      <li>Abra <code>http://localhost:3000</code> em uma nova aba</li>
+      <li>Faça login como ADMIN</li>
+      <li>Pressione <strong>Ctrl+Shift+R</strong> para limpar o cache</li>
+      <li>Abra o Console do navegador (F12)</li>
+      <li>Procure por erros em vermelho</li>
+      <li>Tire um screenshot e me mostre</li>
+    </ol>
+  </div>
+  
+  <div class="test-box">
+    <h2>4. Checklist de Problemas Comuns</h2>
+    <ul>
+      <li>❓ Você está logado como ADMIN? (não TECH ou REQUESTER)</li>
+      <li>❓ Você limpou o cache do navegador? (Ctrl+Shift+R)</li>
+      <li>❓ O servidor está rodando sem erros?</li>
+      <li>❓ Você vê ALGUM menu lateral, ou nada aparece?</li>
+    </ul>
+  </div>
+  
+  <div class="test-box">
+    <h2>5. O que você deveria ver</h2>
+    <p>No menu lateral, você deveria ver:</p>
+    <ul>
+      <li>📊 Dashboard (link normal)</li>
+      <li>⚠️ <strong>Monitoramento</strong> (botão clicável com seta)</li>
+      <li style="margin-left: 30px;">↳ 🔴 SLA Estourado</li>
+      <li style="margin-left: 30px;">↳ 🗑️ Equipamentos Condenados</li>
+      <li style="margin-left: 30px;">↳ ⏳ Aguardando Peças</li>
+      <li style="margin-left: 30px;">↳ 🛡️ Logs de Auditoria</li>
+      <li>📁 GERÊNCIA (cabeçalho)</li>
+      <li>📦 Estoque (Insumos)</li>
+      <li>👥 Usuários</li>
+      <li>... etc</li>
+    </ul>
+  </div>
+  
+  <script>
+    // Test server connection
+    fetch('/admin')
+      .then(response => {
+        if (response.ok || response.status === 302) {
+          document.getElementById('server-status').innerHTML = 
+            '<span class="success">✅ Servidor está rodando!</span>';
+        } else {
+          document.getElementById('server-status').innerHTML = 
+            '<span class="warning">⚠️ Servidor respondeu com status: ' + response.status + '</span>';
+        }
+      })
+      .catch(error => {
+        document.getElementById('server-status').innerHTML = 
+          '<span class="error">❌ Erro ao conectar ao servidor: ' + error.message + '</span>';
+      });
+    
+    // Test CSS file
+    fetch('/public/app.css')
+      .then(response => {
+        if (response.ok) {
+          return response.text();
+        }
+        throw new Error('CSS não encontrado');
+      })
+      .then(css => {
+        const hasAccordion = css.includes('sidebar-accordion-header');
+        const hasBadge = css.includes('sidebar-badge');
+        
+        if (hasAccordion && hasBadge) {
+          document.getElementById('css-status').innerHTML = 
+            '<span class="success">✅ CSS do accordion está presente!</span>';
+        } else {
+          document.getElementById('css-status').innerHTML = 
+            '<span class="warning">⚠️ CSS pode estar incompleto. Accordion: ' + 
+            hasAccordion + ', Badge: ' + hasBadge + '</span>';
+        }
+      })
+      .catch(error => {
+        document.getElementById('css-status').innerHTML = 
+          '<span class="error">❌ Erro ao carregar CSS: ' + error.message + '</span>';
+      });
+  </script>
+</body>
+</html>

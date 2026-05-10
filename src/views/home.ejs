@@ -1,0 +1,109 @@
+<%
+  const role = user.role;
+  const shortcuts = [
+    {
+      href: '/tickets/new',
+      icon: 'plus-circle',
+      title: 'Abrir chamado',
+      text: 'Registrar uma nova solicitação de suporte.',
+      roles: ['ADMIN', 'TECH', 'COORDINATOR', 'REQUESTER']
+    },
+    {
+      href: '/tickets/my',
+      icon: 'person-lines-fill',
+      title: 'Meus chamados',
+      text: 'Acompanhar chamados abertos por você.',
+      roles: ['ADMIN', 'TECH', 'COORDINATOR', 'REQUESTER']
+    },
+    {
+      href: '/tech/tickets',
+      icon: 'inbox-fill',
+      title: 'Fila de atendimento',
+      text: 'Priorizar, responder e resolver chamados.',
+      roles: ['ADMIN', 'TECH']
+    },
+    {
+      href: '/coordinator/tickets',
+      icon: 'building-check',
+      title: 'Chamados da unidade',
+      text: 'Ver a situação da sua unidade de saúde.',
+      roles: ['COORDINATOR']
+    },
+    {
+      href: '/reports',
+      icon: 'bar-chart-line',
+      title: 'Relatórios',
+      text: 'Gerar relatórios por unidade, setor, SLA e período.',
+      roles: ['ADMIN', 'TECH', 'COORDINATOR']
+    },
+    {
+      href: '/admin/locations',
+      icon: 'diagram-3',
+      title: 'Setores e salas',
+      text: 'Manter a estrutura das unidades detalhada.',
+      roles: ['ADMIN']
+    },
+    {
+      href: '/admin/users',
+      icon: 'people',
+      title: 'Usuários e permissões',
+      text: 'Criar, editar e revisar acessos do sistema.',
+      roles: ['ADMIN']
+    },
+    {
+      href: '/admin/insumos',
+      icon: 'box-seam',
+      title: 'Estoque de insumos',
+      text: 'Controlar materiais, peças e níveis mínimos.',
+      roles: ['ADMIN']
+    },
+    {
+      href: '/hardware',
+      icon: 'pc-display',
+      title: 'Inventário de hardware',
+      text: 'Consultar e manter equipamentos cadastrados.',
+      roles: ['ADMIN', 'TECH']
+    },
+    {
+      href: '/admin/sla-breached',
+      icon: 'clock-history',
+      title: 'SLA em atenção',
+      text: 'Ver chamados vencidos ou próximos do prazo.',
+      roles: ['ADMIN']
+    },
+    {
+      href: '/account/password',
+      icon: 'shield-lock',
+      title: 'Minha senha',
+      text: 'Alterar sua própria senha com segurança.',
+      roles: ['ADMIN', 'TECH', 'COORDINATOR', 'REQUESTER']
+    }
+  ].filter(item => item.roles.includes(role));
+%>
+
+<section class="mb-4">
+  <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+    <div>
+      <p class="text-muted mb-1">Olá, <strong><%= user.nome %></strong></p>
+      <h1 class="h3 mb-0">Início</h1>
+    </div>
+    <span class="badge bg-light text-dark border align-self-start align-self-lg-center">
+      <i class="bi bi-shield-check me-1"></i><%= user.role %>
+    </span>
+  </div>
+</section>
+
+<section class="quick-actions-grid" aria-label="Atalhos de acesso rápido">
+  <% shortcuts.forEach(item => { %>
+    <a class="quick-action-card" href="<%= item.href %>">
+      <span class="quick-action-icon">
+        <i class="bi bi-<%= item.icon %>"></i>
+      </span>
+      <span>
+        <strong><%= item.title %></strong>
+        <small><%= item.text %></small>
+      </span>
+      <i class="bi bi-chevron-right quick-action-arrow"></i>
+    </a>
+  <% }) %>
+</section>
