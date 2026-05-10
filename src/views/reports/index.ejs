@@ -1,92 +1,304 @@
-<!-- Header with Period Filter -->
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <h1 class="h3 mb-0 text-gray-800">
-    <i class="bi bi-graph-up"></i> Dashboard Gerencial
-  </h1>
-  <div class="d-flex gap-2">
-    <a href="/export" class="btn btn-success btn-sm" title="Exportar dados para CSV">
-      <i class="bi bi-download"></i> Exportar CSV
-    </a>
-    <select id="periodFilter" class="form-select" style="width: auto;">
-      <option value="7d" <%= selectedPeriod === '7d' ? 'selected' : '' %>>Últimos 7 dias</option>
-      <option value="30d" <%= selectedPeriod === '30d' ? 'selected' : '' %>>Últimos 30 dias</option>
-      <option value="90d" <%= selectedPeriod === '90d' ? 'selected' : '' %>>Últimos 90 dias</option>
-      <option value="all" <%= selectedPeriod === 'all' ? 'selected' : '' %>>Todo período</option>
-    </select>
+<%
+  const dateIsoValue = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const dateBrValue = (value) => {
+    const iso = dateIsoValue(value);
+    if (!iso) return '';
+    const parts = iso.split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  };
+  const customPeriodActive = reportFilters.period === 'custom' || Boolean(reportFilters.startDate || reportFilters.endDate);
+%>
+
+<div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1 text-gray-800">
+      <i class="bi bi-graph-up text-primary"></i> Dashboard Gerencial
+    </h1>
+    <p class="text-muted mb-0">Indicadores de atendimento, SLA, unidades, setores e estoque.</p>
   </div>
+  <select id="periodFilter" class="form-select report-period-select">
+    <% (reportOptions.dashboardPeriods || reportOptions.periods).forEach(period => { %>
+      <option value="<%= period.value %>" <%= selectedPeriod === period.value ? 'selected' : '' %>><%= period.label %></option>
+    <% }) %>
+  </select>
 </div>
 
-<!-- KPI Cards - Compact Design -->
 <div class="row g-2 mb-3">
-  <!-- Card: Chamados Abertos -->
   <div class="col-xl-3 col-md-6">
     <div class="kpi-card kpi-primary">
       <div class="kpi-content">
-        <div class="kpi-icon-wrapper">
-          <i class="bi bi-inbox-fill"></i>
-        </div>
+        <div class="kpi-icon-wrapper"><i class="bi bi-inbox-fill"></i></div>
         <div class="kpi-details">
           <div class="kpi-value"><%= kpis.totalOpen %></div>
-          <div class="kpi-label">Chamados Abertos</div>
+          <div class="kpi-label">Chamados ativos</div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Card: Tempo Médio de Resposta -->
   <div class="col-xl-3 col-md-6">
     <div class="kpi-card kpi-info">
       <div class="kpi-content">
-        <div class="kpi-icon-wrapper">
-          <i class="bi bi-clock-history"></i>
-        </div>
+        <div class="kpi-icon-wrapper"><i class="bi bi-clock-history"></i></div>
         <div class="kpi-details">
           <div class="kpi-value"><%= kpis.avgResponseTime %>h</div>
-          <div class="kpi-label">Tempo Médio Resposta</div>
+          <div class="kpi-label">Tempo médio resposta</div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Card: Taxa de Cumprimento SLA -->
   <div class="col-xl-3 col-md-6">
-    <div class="kpi-card <%= kpis.slaRate >= 95 ? 'kpi-success' : (kpis.slaRate >= 85 ? 'kpi-warning' : 'kpi-danger') %>">
+    <div class="kpi-card <%= Number(kpis.slaRate) >= 95 ? 'kpi-success' : (Number(kpis.slaRate) >= 85 ? 'kpi-warning' : 'kpi-danger') %>">
       <div class="kpi-content">
-        <div class="kpi-icon-wrapper">
-          <i class="bi bi-<%= kpis.slaRate >= 95 ? 'check-circle-fill' : (kpis.slaRate >= 85 ? 'exclamation-triangle-fill' : 'x-circle-fill') %>"></i>
-        </div>
+        <div class="kpi-icon-wrapper"><i class="bi bi-shield-check"></i></div>
         <div class="kpi-details">
           <div class="kpi-value"><%= kpis.slaRate %>%</div>
-          <div class="kpi-label">Taxa SLA</div>
+          <div class="kpi-label">SLA de resposta</div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Card: Alertas Críticos -->
   <div class="col-xl-3 col-md-6">
     <div class="kpi-card <%= kpis.criticalAlerts > 0 ? 'kpi-danger' : 'kpi-success' %>">
       <div class="kpi-content">
-        <div class="kpi-icon-wrapper">
-          <i class="bi bi-<%= kpis.criticalAlerts > 0 ? 'exclamation-diamond-fill' : 'shield-check' %>"></i>
-        </div>
+        <div class="kpi-icon-wrapper"><i class="bi bi-exclamation-diamond-fill"></i></div>
         <div class="kpi-details">
           <div class="kpi-value"><%= kpis.criticalAlerts %></div>
-          <div class="kpi-label">Alertas Críticos</div>
+          <div class="kpi-label">Alertas operacionais</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- USFs e Categorias -->
-<div class="row g-2 mb-3">
-  <!-- Widget: USFs Problemáticas -->
+<div class="card shadow mb-3">
+  <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+    <div>
+      <h6 class="m-0 font-weight-bold text-primary">
+        <i class="bi bi-file-earmark-arrow-down"></i> Gerador de Relatórios
+      </h6>
+      <small class="text-muted">Modo simples para rotina diária; modo avançado para auditoria e gestão.</small>
+    </div>
+    <div class="btn-group report-mode-toggle" role="group" aria-label="Modo do relatório">
+      <input type="radio" class="btn-check" name="reportModeToggle" id="modeSimple" value="simple" autocomplete="off" <%= reportFilters.mode !== 'advanced' ? 'checked' : '' %>>
+      <label class="btn btn-outline-primary btn-sm" for="modeSimple">Simples</label>
+      <input type="radio" class="btn-check" name="reportModeToggle" id="modeAdvanced" value="advanced" autocomplete="off" <%= reportFilters.mode === 'advanced' ? 'checked' : '' %>>
+      <label class="btn btn-outline-primary btn-sm" for="modeAdvanced">Avançado</label>
+    </div>
+  </div>
+  <div class="card-body">
+    <form id="reportExportForm" method="get" action="/export" class="row g-3 align-items-end">
+      <input type="hidden" name="mode" id="reportModeInput" value="<%= reportFilters.mode %>">
+      <div class="col-lg-4">
+        <label class="form-label">Tipo de relatório <span class="text-danger">*</span></label>
+        <select class="form-select" name="type" required>
+          <% reportOptions.types.forEach(type => { %>
+            <option value="<%= type.value %>" <%= reportFilters.type === type.value ? 'selected' : '' %>><%= type.label %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <label class="form-label">Período <span class="text-danger">*</span></label>
+        <select class="form-select" name="period">
+          <% reportOptions.periods.forEach(period => { %>
+            <option value="<%= period.value %>" <%= !customPeriodActive && reportFilters.period === period.value ? 'selected' : '' %>><%= period.label %></option>
+          <% }) %>
+          <option value="custom" <%= customPeriodActive ? 'selected' : '' %>>Período personalizado</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <label class="form-label">Formato <span class="text-danger">*</span></label>
+        <select class="form-select" name="format">
+          <option value="xlsx">Excel (.xlsx)</option>
+          <option value="pdf">PDF</option>
+          <option value="csv">CSV</option>
+        </select>
+      </div>
+      <div class="col-md-4 col-lg-2">
+        <label class="form-label">Layout PDF</label>
+        <select class="form-select" name="layout">
+          <option value="<%= reportSettings.layout %>">Padrão do sistema</option>
+          <option value="classic">Clássico</option>
+          <option value="compact">Compacto</option>
+        </select>
+      </div>
+      <div class="col-lg-2 d-grid">
+        <button class="btn btn-success" type="submit">
+          <i class="bi bi-download"></i> Gerar
+        </button>
+      </div>
+
+      <div id="reportCustomPeriodFields" class="col-12 <%= customPeriodActive ? '' : 'd-none' %>">
+        <div class="report-date-range">
+          <div class="report-date-range-header">
+            <div>
+              <div class="fw-semibold">Período personalizado</div>
+              <div class="text-muted small">Informe as datas no formato dd/mm/aaaa ou use o calendário do sistema.</div>
+            </div>
+            <span class="badge text-bg-light border">Compatível sem input nativo de data</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6 col-xl-4">
+              <div class="report-date-field" data-date-picker>
+                <label class="form-label" for="reportStartDateText">Data inicial</label>
+                <div class="input-group report-date-input-group">
+                  <input class="form-control report-date-text" id="reportStartDateText" type="text" inputmode="numeric"
+                         autocomplete="off" placeholder="dd/mm/aaaa" value="<%= dateBrValue(reportFilters.startDate) %>"
+                         data-date-display aria-describedby="reportCustomPeriodFeedback">
+                  <input type="hidden" name="startDate" value="<%= dateIsoValue(reportFilters.startDate) %>" data-date-value>
+                  <button class="btn btn-outline-secondary report-date-toggle" type="button" data-date-toggle
+                          aria-label="Abrir calendário da data inicial">
+                    <i class="bi bi-calendar3"></i>
+                  </button>
+                </div>
+                <div class="report-date-picker" data-date-panel hidden></div>
+              </div>
+            </div>
+            <div class="col-md-6 col-xl-4">
+              <div class="report-date-field" data-date-picker>
+                <label class="form-label" for="reportEndDateText">Data final</label>
+                <div class="input-group report-date-input-group">
+                  <input class="form-control report-date-text" id="reportEndDateText" type="text" inputmode="numeric"
+                         autocomplete="off" placeholder="dd/mm/aaaa" value="<%= dateBrValue(reportFilters.endDate) %>"
+                         data-date-display aria-describedby="reportCustomPeriodFeedback">
+                  <input type="hidden" name="endDate" value="<%= dateIsoValue(reportFilters.endDate) %>" data-date-value>
+                  <button class="btn btn-outline-secondary report-date-toggle" type="button" data-date-toggle
+                          aria-label="Abrir calendário da data final">
+                    <i class="bi bi-calendar3"></i>
+                  </button>
+                </div>
+                <div class="report-date-picker" data-date-panel hidden></div>
+              </div>
+            </div>
+            <div class="col-xl-4 d-flex align-items-end">
+              <div class="report-date-feedback" id="reportCustomPeriodFeedback" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="advancedReportFields" class="row g-3 mt-1 <%= reportFilters.mode === 'advanced' ? '' : 'd-none' %>">
+        <div class="col-md-3">
+          <label class="form-label">Unidade</label>
+          <select class="form-select" name="usfId">
+            <option value="">Todas permitidas</option>
+            <% reportOptions.usfs.forEach(usf => { %>
+              <option value="<%= usf.id %>" <%= reportFilters.usfId === usf.id ? 'selected' : '' %>><%= usf.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Setor</label>
+          <select class="form-select" name="sectorId">
+            <option value="">Todos</option>
+            <% reportOptions.sectors.forEach(sector => { %>
+              <option value="<%= sector.id %>" <%= reportFilters.sectorId === sector.id ? 'selected' : '' %>><%= sector.usf?.nome %> - <%= sector.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" name="categoryId">
+            <option value="">Todas</option>
+            <% reportOptions.categories.forEach(category => { %>
+              <option value="<%= category.id %>" <%= reportFilters.categoryId === category.id ? 'selected' : '' %>><%= category.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" name="status">
+            <option value="">Todos</option>
+            <% reportOptions.statuses.forEach(status => { %>
+              <option value="<%= status %>" <%= reportFilters.status === status ? 'selected' : '' %>><%= translateStatus(status) %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Prioridade</label>
+          <select class="form-select" name="priority">
+            <option value="">Todas</option>
+            <% reportOptions.priorities.forEach(priority => { %>
+              <option value="<%= priority %>" <%= reportFilters.priority === priority ? 'selected' : '' %>><%= translatePriority(priority) %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">PDF</label>
+          <select class="form-select" name="orientation">
+            <option value="<%= reportSettings.orientation %>">Orientação padrão</option>
+            <option value="landscape">Paisagem</option>
+            <option value="portrait">Retrato</option>
+          </select>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8">
+    <div class="widget-card">
+      <div class="widget-header">
+        <h5 class="widget-title"><i class="bi bi-bar-chart-fill"></i> Volume por unidade</h5>
+        <span class="widget-subtitle">Chamados no período selecionado</span>
+      </div>
+      <div class="widget-body">
+        <div class="chart-container"><canvas id="myBarChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="widget-card">
+      <div class="widget-header">
+        <h5 class="widget-title"><i class="bi bi-pie-chart-fill"></i> Categorias</h5>
+        <span class="widget-subtitle">Principais demandas</span>
+      </div>
+      <div class="widget-body">
+        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-xl-8">
+    <div class="widget-card">
+      <div class="widget-header">
+        <h5 class="widget-title"><i class="bi bi-activity"></i> Tendência de chamados</h5>
+        <span class="widget-subtitle">Últimos 7 dias</span>
+      </div>
+      <div class="widget-body">
+        <div class="chart-container"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="widget-card">
+      <div class="widget-header">
+        <h5 class="widget-title"><i class="bi bi-speedometer2"></i> SLA por unidade</h5>
+        <span class="widget-subtitle">Menores percentuais aparecem primeiro</span>
+      </div>
+      <div class="widget-body">
+        <div class="chart-container"><canvas id="slaByUnitChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-3">
   <div class="col-lg-6">
     <div class="widget-card">
       <div class="widget-header">
-        <h5 class="widget-title"><i class="bi bi-hospital"></i> USFs Problemáticas</h5>
-        <span class="widget-subtitle">Top 5 - Últimos 30 dias</span>
+        <h5 class="widget-title"><i class="bi bi-hospital"></i> Unidades para acompanhamento</h5>
+        <span class="widget-subtitle">Ranking por atrasos, urgência e volume</span>
       </div>
       <div class="widget-body">
         <% if (topUsfs.length === 0) { %>
@@ -99,17 +311,11 @@
                 <div class="ranking-info">
                   <div class="ranking-name"><%= usf.nome %></div>
                   <div class="ranking-meta">
-                    <% if (usf.urgentes > 0) { %>
-                      <span class="meta-tag meta-urgent"><%= usf.urgentes %> urgentes</span>
-                    <% } %>
-                    <% if (usf.sla_breach > 0) { %>
-                      <span class="meta-tag meta-breach"><%= usf.sla_breach %> SLA vencido</span>
-                    <% } %>
+                    <span class="meta-tag"><%= usf.total_chamados %> chamados</span>
+                    <% if (usf.urgentes > 0) { %><span class="meta-tag meta-urgent"><%= usf.urgentes %> urgentes</span><% } %>
+                    <% if (usf.sla_breach > 0) { %><span class="meta-tag meta-breach"><%= usf.sla_breach %> SLA</span><% } %>
                   </div>
                 </div>
-                <span class="badge <%= usf.total_chamados > 20 ? 'bg-danger' : (usf.total_chamados > 10 ? 'bg-warning text-dark' : 'bg-secondary') %>">
-                  <%= usf.total_chamados %>
-                </span>
               </li>
             <% }) %>
           </ul>
@@ -117,29 +323,28 @@
       </div>
     </div>
   </div>
-
-  <!-- Widget: Categorias Quentes -->
   <div class="col-lg-6">
     <div class="widget-card">
       <div class="widget-header">
-        <h5 class="widget-title"><i class="bi bi-fire"></i> Categorias Quentes</h5>
-        <span class="widget-subtitle">Top 5 - Últimos 30 dias</span>
+        <h5 class="widget-title"><i class="bi bi-diagram-3"></i> Setores e salas sensíveis</h5>
+        <span class="widget-subtitle">Onde os atrasos se concentram</span>
       </div>
       <div class="widget-body">
-        <% if (topCategories.length === 0) { %>
+        <% if (sectorHotspots.length === 0) { %>
           <p class="text-center text-muted py-4">Nenhum dado disponível</p>
         <% } else { %>
           <ul class="ranking-list">
-            <% topCategories.forEach((cat, index) => { %>
+            <% sectorHotspots.forEach((item, index) => { %>
               <li class="ranking-item">
                 <span class="rank">#<%= index + 1 %></span>
                 <div class="ranking-info">
-                  <div class="ranking-name"><%= cat.nome %></div>
+                  <div class="ranking-name"><%= item.name %></div>
                   <div class="ranking-meta">
-                    <span class="meta-tag"><%= cat.percentage %>% do total</span>
+                    <span class="meta-tag"><%= item.total %> chamados</span>
+                    <% if (item.breached > 0) { %><span class="meta-tag meta-breach"><%= item.breached %> SLA</span><% } %>
+                    <% if (item.urgent > 0) { %><span class="meta-tag meta-urgent"><%= item.urgent %> urgentes</span><% } %>
                   </div>
                 </div>
-                <span class="badge bg-primary"><%= cat.total %></span>
               </li>
             <% }) %>
           </ul>
@@ -149,50 +354,54 @@
   </div>
 </div>
 
-<!-- Gráfico e Estoque -->
-<div class="row g-2 mb-3">
-  <!-- Chart: Volume por USF -->
-  <div class="col-lg-8">
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
     <div class="widget-card">
       <div class="widget-header">
-        <h5 class="widget-title"><i class="bi bi-bar-chart-fill"></i> Volume por Unidade de Saúde</h5>
-        <span class="widget-subtitle">Últimos 30 dias</span>
+        <h5 class="widget-title"><i class="bi bi-people-fill"></i> Carga de trabalho técnica</h5>
+        <span class="widget-subtitle">Chamados ativos por técnico</span>
       </div>
       <div class="widget-body">
-        <div class="chart-container">
-          <canvas id="myBarChart"></canvas>
-        </div>
+        <% if (techWorkload.length === 0) { %>
+          <p class="text-center text-muted py-4">Nenhum técnico com chamados ativos</p>
+        <% } else { %>
+          <ul class="ranking-list">
+            <% techWorkload.forEach((tech, index) => { %>
+              <li class="ranking-item">
+                <span class="rank">#<%= index + 1 %></span>
+                <div class="ranking-info">
+                  <div class="ranking-name"><%= tech.nome %></div>
+                  <div class="ranking-meta">
+                    <span class="meta-tag"><%= tech.tempo_resposta_medio %>h resposta</span>
+                    <% if (tech.urgentes > 0) { %><span class="meta-tag meta-urgent"><%= tech.urgentes %> urgentes</span><% } %>
+                  </div>
+                </div>
+                <span class="badge bg-primary"><%= tech.chamados_ativos %></span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
       </div>
     </div>
   </div>
-
-  <!-- Panel: Estoque Crítico -->
-  <div class="col-lg-4">
+  <div class="col-lg-6">
     <div class="widget-card">
       <div class="widget-header">
-        <h5 class="widget-title"><i class="bi bi-box-seam"></i> Estoque Crítico</h5>
-        <span class="widget-subtitle">Itens com quantidade baixa</span>
+        <h5 class="widget-title"><i class="bi bi-box-seam"></i> Estoque crítico</h5>
+        <span class="widget-subtitle">Insumos em atenção</span>
       </div>
       <div class="widget-body p-0">
         <ul class="list-group list-group-flush">
           <% if (lowStock.length === 0) { %>
-            <li class="list-group-item text-center text-muted">
-              <i class="bi bi-check-circle text-success"></i> Estoque abastecido
-            </li>
+            <li class="list-group-item text-center text-muted">Estoque abastecido</li>
           <% } else { %>
             <% lowStock.forEach(item => { %>
               <li class="list-group-item d-flex justify-content-between align-items-center <%= item.quantidadeAtual === 0 ? 'bg-danger bg-opacity-10' : '' %>">
                 <div>
-                  <strong class="<%= item.quantidadeAtual === 0 ? 'text-danger' : '' %>">
-                    <%= item.nome %>
-                  </strong>
-                  <% if (item.quantidadeAtual === 0) { %>
-                    <br><small class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Estoque zerado!</small>
-                  <% } %>
+                  <strong class="<%= item.quantidadeAtual === 0 ? 'text-danger' : '' %>"><%= item.nome %></strong>
+                  <small class="d-block text-muted">Mínimo: <%= item.quantidadeMinima %></small>
                 </div>
-                <span class="badge <%= item.quantidadeAtual === 0 ? 'bg-danger' : 'bg-warning text-dark' %> rounded-pill">
-                  <%= item.quantidadeAtual %>
-                </span>
+                <span class="badge <%= item.quantidadeAtual === 0 ? 'bg-danger' : 'bg-warning text-dark' %> rounded-pill"><%= item.quantidadeAtual %></span>
               </li>
             <% }) %>
           <% } %>
@@ -202,128 +411,7 @@
   </div>
 </div>
 
-<!-- Alertas removidos - informações disponíveis na sidebar -->
-
-<!-- Analytics Tabs (Compact) -->
-<div class="row g-2 mb-3">
-  <div class="col-12">
-    <div class="widget-card">
-      <div class="widget-header pb-0">
-        <ul class="nav nav-tabs dashboard-tabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="trend-tab" data-bs-toggle="tab" data-bs-target="#trend-panel" type="button" role="tab">
-              <i class="bi bi-graph-up"></i> Tendência
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="workload-tab" data-bs-toggle="tab" data-bs-target="#workload-panel" type="button" role="tab">
-              <i class="bi bi-people-fill"></i> Carga de Trabalho
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="sla-tab" data-bs-toggle="tab" data-bs-target="#sla-panel" type="button" role="tab">
-              <i class="bi bi-clock-history"></i> Performance SLA
-            </button>
-          </li>
-        </ul>
-      </div>
-      
-      <div class="tab-content widget-body pt-3">
-        <!-- Trend Tab -->
-        <div class="tab-pane fade show active" id="trend-panel" role="tabpanel">
-          <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Volume de chamados nos últimos 7 dias</p>
-          <div class="chart-container" style="height: 220px;">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Workload Tab -->
-        <div class="tab-pane fade" id="workload-panel" role="tabpanel">
-          <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Chamados ativos por técnico</p>
-          <% if (techWorkload.length === 0) { %>
-            <p class="text-center text-muted py-4">Nenhum técnico com chamados ativos</p>
-          <% } else { %>
-            <ul class="ranking-list">
-              <% techWorkload.forEach((tech, index) => { %>
-                <li class="ranking-item">
-                  <span class="rank">#<%= index + 1 %></span>
-                  <div class="ranking-info">
-                    <div class="ranking-name"><%= tech.nome %></div>
-                    <div class="ranking-meta">
-                      <% if (tech.urgentes > 0) { %>
-                        <span class="meta-tag meta-urgent"><%= tech.urgentes %> urgentes</span>
-                      <% } %>
-                      <span class="meta-tag"><i class="bi bi-clock"></i> <%= tech.tempo_resposta_medio %>h resposta</span>
-                    </div>
-                  </div>
-                  <span class="badge <%= tech.chamados_ativos > 15 ? 'bg-danger' : (tech.chamados_ativos > 10 ? 'bg-warning text-dark' : 'bg-success') %>">
-                    <%= tech.chamados_ativos %>
-                  </span>
-                </li>
-              <% }) %>
-            </ul>
-          <% } %>
-        </div>
-        
-        <!-- SLA Tab -->
-        <div class="tab-pane fade" id="sla-panel" role="tabpanel">
-          <p class="text-muted small mb-3"><i class="bi bi-info-circle"></i> Detalhamento de cumprimento de SLA</p>
-          <div class="sla-metrics">
-            <div class="sla-metric-item">
-              <div class="sla-metric-label">Taxa de Cumprimento</div>
-              <div class="sla-metric-value <%= slaDetails.taxa_cumprimento >= 95 ? 'text-success' : (slaDetails.taxa_cumprimento >= 85 ? 'text-warning' : 'text-danger') %>">
-                <%= slaDetails.taxa_cumprimento %>%
-              </div>
-              <div class="sla-metric-meta">Meta: 95%</div>
-            </div>
-            
-            <div class="row mt-3">
-              <div class="col-6">
-                <div class="sla-stat-card bg-success bg-opacity-10">
-                  <div class="sla-stat-value text-success"><%= slaDetails.no_prazo %></div>
-                  <div class="sla-stat-label">No Prazo</div>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="sla-stat-card bg-danger bg-opacity-10">
-                  <div class="sla-stat-value text-danger"><%= slaDetails.atrasados %></div>
-                  <div class="sla-stat-label">Atrasados</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="row mt-2">
-              <div class="col-6">
-                <div class="sla-time-metric">
-                  <span class="sla-time-label">Tempo Médio Resposta:</span>
-                  <span class="sla-time-value"><%= slaDetails.tempo_medio_resposta %>h</span>
-                </div>
-              </div>
-              <div class="col-6">
-                <div class="sla-time-metric">
-                  <span class="sla-time-label">Tempo Médio Resolução:</span>
-                  <span class="sla-time-value"><%= slaDetails.tempo_medio_resolucao %>h</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Chart.js (local) -->
-<script src="/node_modules/chart.js/dist/chart.umd.js"></script>
-
-<!-- Tab Initialization Script (external file to comply with CSP) -->
-<script src="/public/dashboard-tabs.js"></script>
-
-<!-- Chart Data (embedded in data attributes for CSP compliance) -->
-<div id="chartData" style="display: none;"
-     data-usf='<%- JSON.stringify(byUsf) %>'
-     data-trend='<%- JSON.stringify(trendData) %>'>
-</div>
-
-<!-- External Chart Scripts (CSP compliant) -->
-<script src="/public/dashboard-charts.js"></script>
+<script src="/public/vendor/chartjs/chart.umd.js"></script>
+<script id="chartDataJson" type="application/json" nonce="<%= cspNonce %>"><%- safeJsonForScript({ byUsf, trendData, categoryChart, slaByUnitChart }) %></script>
+<script src="<%= asset('/public/report-date-picker.js') %>"></script>
+<script src="<%= asset('/public/dashboard-charts.js') %>"></script>

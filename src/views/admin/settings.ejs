@@ -1,133 +1,158 @@
-<h1 class="h3 mb-4 text-gray-800">
-  <i class="bi bi-gear text-primary"></i> Configurações do Sistema
-</h1>
+<%
+  const settings = reportSettings || {};
+%>
 
-<div class="row">
-  <!-- Configuração de Auto Coordenador -->
-  <div class="col-lg-6">
-    <div class="card shadow mb-4">
-      <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">
-          <i class="bi bi-person-badge"></i> Regra de Auto-Coordenador
-        </h6>
-      </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <div class="d-flex align-items-center justify-content-between">
-            <div>
-              <div class="fw-semibold mb-1">Auto Coordenador para Enfermeiros</div>
-              <div class="text-muted small">
-                Quando habilitado, usuários com cargo contendo "Enfermeiro" serão automaticamente cadastrados com perfil COORDINATOR.
-              </div>
-            </div>
-            <div class="ms-3">
-              <% if (autoCoordinator) { %>
-                <span class="badge bg-success fs-6">
-                  <i class="bi bi-check-circle-fill"></i> ATIVO
-                </span>
-              <% } else { %>
-                <span class="badge bg-warning text-dark fs-6">
-                  <i class="bi bi-x-circle-fill"></i> INATIVO
-                </span>
-              <% } %>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert alert-info mb-0">
-          <i class="bi bi-info-circle-fill"></i>
-          <strong>Variável de Ambiente:</strong>
-          <code class="ms-2">AUTO_COORDINATOR_FOR_ENFERMEIRO = <%= autoCoordinator ? 'true' : 'false' %></code>
-          <div class="mt-2 small">
-            Para alterar esta configuração, edite o arquivo <code>.env</code> e reinicie o servidor.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Informações do Sistema -->
-  <div class="col-lg-6">
-    <div class="card shadow mb-4">
-      <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">
-          <i class="bi bi-info-circle"></i> Informações do Sistema
-        </h6>
-      </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <div class="small text-muted mb-1">Versão</div>
-          <div class="fw-semibold">Helpdesk TI v2.0.0</div>
-        </div>
-
-        <div class="mb-3">
-          <div class="small text-muted mb-1">Banco de Dados</div>
-          <div class="fw-semibold">
-            <i class="bi bi-database"></i> MySQL
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <div class="small text-muted mb-1">Recursos Ativos</div>
-          <div>
-            <span class="badge bg-success me-1">
-              <i class="bi bi-check"></i> Gestão de Insumos
-            </span>
-            <span class="badge bg-success me-1">
-              <i class="bi bi-check"></i> SLA Configurável
-            </span>
-            <span class="badge bg-success me-1">
-              <i class="bi bi-check"></i> Auditoria
-            </span>
-            <span class="badge bg-success me-1">
-              <i class="bi bi-check"></i> Aprovação de Equipamentos
-            </span>
-          </div>
-        </div>
-
-        <div class="mb-0">
-          <div class="small text-muted mb-1">Ambiente</div>
-          <div class="fw-semibold">
-            <i class="bi bi-server"></i> Produção
-          </div>
-        </div>
-      </div>
-    </div>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1 text-gray-800">
+      <i class="bi bi-gear text-primary"></i> Configurações do Sistema
+    </h1>
+    <p class="text-muted mb-0">Padrões operacionais, aparência de relatórios e informações da instalação.</p>
   </div>
 </div>
 
-<!-- Ações Rápidas -->
-<div class="row">
-  <div class="col-12">
-    <div class="card shadow">
+<div class="row g-3">
+  <div class="col-xl-8">
+    <div class="card shadow mb-4">
       <div class="card-header py-3">
         <h6 class="m-0 font-weight-bold text-primary">
-          <i class="bi bi-lightning"></i> Ações Rápidas
+          <i class="bi bi-file-earmark-bar-graph"></i> Relatórios PDF/XLSX
         </h6>
       </div>
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-3">
-            <a href="/admin/users" class="btn btn-outline-primary w-100">
-              <i class="bi bi-people"></i> Gerenciar Usuários
-            </a>
+        <form method="post" action="/admin/settings/reports?_csrf=<%= csrfToken %>" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome do órgão <span class="text-danger">*</span></label>
+              <input class="form-control" name="organizationName" maxlength="140" required
+                     value="<%= settings.organizationName || '' %>">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Prefixo do título <span class="text-danger">*</span></label>
+              <input class="form-control" name="reportTitlePrefix" maxlength="140" required
+                     value="<%= settings.reportTitlePrefix || '' %>">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Layout padrão</label>
+              <select class="form-select" name="layout">
+                <option value="classic" <%= settings.layout === 'classic' ? 'selected' : '' %>>Clássico</option>
+                <option value="compact" <%= settings.layout === 'compact' ? 'selected' : '' %>>Compacto</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Papel</label>
+              <select class="form-select" name="paperSize">
+                <option value="A4" <%= settings.paperSize === 'A4' ? 'selected' : '' %>>A4</option>
+                <option value="LETTER" <%= settings.paperSize === 'LETTER' ? 'selected' : '' %>>Carta</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Orientação</label>
+              <select class="form-select" name="orientation">
+                <option value="landscape" <%= settings.orientation === 'landscape' ? 'selected' : '' %>>Paisagem</option>
+                <option value="portrait" <%= settings.orientation === 'portrait' ? 'selected' : '' %>>Retrato</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cor de destaque</label>
+              <input class="form-control form-control-color w-100" type="color" name="accentColor"
+                     value="<%= settings.accentColor || '#0d6efd' %>">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Rodapé do relatório</label>
+              <input class="form-control" name="footerText" maxlength="180"
+                     value="<%= settings.footerText || '' %>">
+            </div>
+            <div class="col-md-8">
+              <label class="form-label">Logo da prefeitura <span class="text-muted">(PNG, JPG ou WebP até 2 MB)</span></label>
+              <input class="form-control" type="file" name="logo" accept=".png,.jpg,.jpeg,.webp">
+              <% if (settings.logoFile) { %>
+                <div class="form-check mt-2">
+                  <input class="form-check-input" type="checkbox" id="removeLogo" name="removeLogo">
+                  <label class="form-check-label" for="removeLogo">Remover logo atual</label>
+                </div>
+              <% } %>
+            </div>
+            <div class="col-md-4">
+              <% if (settings.logoFile) { %>
+                <div class="border rounded p-2 bg-light text-center">
+                  <img src="/system-assets/<%= settings.logoFile %>" alt="Logo atual" class="img-fluid report-logo-preview">
+                </div>
+              <% } else { %>
+                <div class="border rounded p-3 bg-light text-center text-muted small">
+                  Nenhuma logo cadastrada.
+                </div>
+              <% } %>
+            </div>
           </div>
-          <div class="col-md-3">
-            <a href="/admin/categories" class="btn btn-outline-primary w-100">
-              <i class="bi bi-tags"></i> Gerenciar Categorias
-            </a>
+
+          <div class="d-flex flex-wrap gap-3 mt-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="includeLogo" name="includeLogo"
+                     <%= settings.includeLogo ? 'checked' : '' %>>
+              <label class="form-check-label" for="includeLogo">Exibir logo por padrão</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="includeGeneratedBy" name="includeGeneratedBy"
+                     <%= settings.includeGeneratedBy ? 'checked' : '' %>>
+              <label class="form-check-label" for="includeGeneratedBy">Exibir usuário gerador</label>
+            </div>
           </div>
-          <div class="col-md-3">
-            <a href="/admin/insumos" class="btn btn-outline-primary w-100">
-              <i class="bi bi-box-seam"></i> Gerenciar Estoque
-            </a>
+
+          <div class="d-flex justify-content-end mt-4">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-save"></i> Salvar configurações
+            </button>
           </div>
-          <div class="col-md-3">
-            <a href="/admin/audit" class="btn btn-outline-primary w-100">
-              <i class="bi bi-journal-text"></i> Ver Auditoria
-            </a>
-          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-4">
+    <div class="card shadow mb-4">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+          <i class="bi bi-sliders"></i> Preferências operacionais
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="small text-muted mb-1">Coordenador automático para enfermeiros</div>
+          <% if (autoCoordinator) { %>
+            <span class="badge bg-success">Ativo</span>
+          <% } else { %>
+            <span class="badge bg-warning text-dark">Inativo</span>
+          <% } %>
         </div>
+        <div class="mb-3">
+          <div class="small text-muted mb-1">Acesso</div>
+          <div class="fw-semibold">Sessões e permissões são tratadas automaticamente.</div>
+        </div>
+        <div class="mb-0">
+          <div class="small text-muted mb-1">Conta</div>
+          <div class="fw-semibold">Usuários podem redefinir e alterar a própria senha.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow">
+      <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+          <i class="bi bi-lightning"></i> Ações rápidas
+        </h6>
+      </div>
+      <div class="card-body d-grid gap-2">
+        <a href="/reports" class="btn btn-outline-primary">
+          <i class="bi bi-bar-chart"></i> Abrir relatórios
+        </a>
+        <a href="/admin/users" class="btn btn-outline-primary">
+          <i class="bi bi-people"></i> Gerenciar usuários
+        </a>
+        <a href="/admin/audit" class="btn btn-outline-primary">
+          <i class="bi bi-journal-text"></i> Ver auditoria
+        </a>
       </div>
     </div>
   </div>

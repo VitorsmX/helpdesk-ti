@@ -1,21 +1,18 @@
 const express = require('express');
 const { getPrisma } = require('../db');
-const { requireRole, requireAuth } = require('../middleware/auth');
+const { requireRole } = require('../middleware/auth');
 const { logAudit } = require('../middleware/audit');
+const { writeLimiter } = require('../middleware/rateLimit');
+const { HardwareStatuses, LegacyRooms, cleanText, enumValue, intId } = require('../utils/validation');
 
 const router = express.Router();
 
 // Lista de hardware com filtros (acessível para ADMIN e TECH)
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireRole('ADMIN', 'TECH'), async (req, res) => {
   const prisma = getPrisma();
   const { usfId, patrimonio } = req.query;
 
   // Verificar se usuário tem permissão (ADMIN ou TECH)
-  if (!['ADMIN', 'TECH'].includes(req.user.role)) {
-    req.flash('error', 'Acesso negado.');
-    return res.redirect('/');
-  }
-
   const where = {};
   if (usfId && usfId !== 'all') {
     where.usfId = Number(usfId);
@@ -43,17 +40,17 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // Criar novo hardware (ADMIN only)
-router.post('/', requireRole('ADMIN'), async (req, res) => {
+router.post('/', requireRole('ADMIN'), writeLimiter, async (req, res) => {
   const prisma = getPrisma();
 
-  const patrimonio = String(req.body.patrimonio || '').trim() || null;
-  const usfId = Number(req.body.usfId);
-  const sala = String(req.body.sala || '');
-  const anydesk = String(req.body.anydesk || '').trim() || null;
-  const status = String(req.body.status || 'ATIVO');
-  const tipo = String(req.body.tipo || '').trim();
-  const modelo = String(req.body.modelo || '').trim() || null;
-  const observacoes = String(req.body.observacoes || '').trim() || null;
+  const patrimonio = cleanText(req.body.patrimonio, { max: 80 }) || null;
+  const usfId = intId(req.body.usfId);
+  const sala = enumValue(req.body.sala, LegacyRooms, null);
+  const anydesk = cleanText(req.body.anydesk, { max: 80 }) || null;
+  const status = enumValue(req.body.status, HardwareStatuses, 'ATIVO');
+  const tipo = cleanText(req.body.tipo, { max: 120, required: true });
+  const modelo = cleanText(req.body.modelo, { max: 120 }) || null;
+  const observacoes = cleanText(req.body.observacoes, { max: 5000 }) || null;
 
   if (!usfId || !sala || !tipo) {
     req.flash('error', 'Preencha os campos obrigatórios (USF, Sala, Tipo).');
@@ -89,15 +86,10 @@ router.post('/', requireRole('ADMIN'), async (req, res) => {
 });
 
 // Atualizar hardware (ADMIN: todos campos, TECH: apenas anydesk e status)
-router.post('/:id/update', requireAuth, async (req, res) => {
+router.post('/:id/update', requireRole('ADMIN', 'TECH'), writeLimiter, async (req, res) => {
   const prisma = getPrisma();
-  const id = Number(req.params.id);
-
-  // Verificar permissão
-  if (!['ADMIN', 'TECH'].includes(req.user.role)) {
-    req.flash('error', 'Acesso negado.');
-    return res.redirect('/');
-  }
+  const id = intId(req.params.id);
+  if (!id) return res.redirect('/hardware');
 
   const hardware = await prisma.hardware.findUnique({ where: { id } });
   if (!hardware) {
@@ -109,10 +101,10 @@ router.post('/:id/update', requireAuth, async (req, res) => {
 
   if (req.user.role === 'ADMIN') {
     // ADMIN pode editar todos os campos
-    const patrimonio = String(req.body.patrimonio || '').trim() || null;
-    const usfId = Number(req.body.usfId);
-    const sala = String(req.body.sala || '');
-    const tipo = String(req.body.tipo || '').trim();
+    const patrimonio = cleanText(req.body.patrimonio, { max: 80 }) || null;
+    const usfId = intId(req.body.usfId);
+    const sala = enumValue(req.body.sala, LegacyRooms, null);
+    const tipo = cleanText(req.body.tipo, { max: 120, required: true });
 
     if (!usfId || !sala || !tipo) {
       req.flash('error', 'Preencha os campos obrigatórios (USF, Sala, Tipo).');
@@ -123,13 +115,13 @@ router.post('/:id/update', requireAuth, async (req, res) => {
     data.usfId = usfId;
     data.sala = sala;
     data.tipo = tipo;
-    data.modelo = String(req.body.modelo || '').trim() || null;
-    data.observacoes = String(req.body.observacoes || '').trim() || null;
+    data.modelo = cleanText(req.body.modelo, { max: 120 }) || null;
+    data.observacoes = cleanText(req.body.observacoes, { max: 5000 }) || null;
   }
 
   // ADMIN e TECH podem editar anydesk e status
-  data.anydesk = String(req.body.anydesk || '').trim() || null;
-  data.status = String(req.body.status || 'ATIVO');
+  data.anydesk = cleanText(req.body.anydesk, { max: 80 }) || null;
+  data.status = enumValue(req.body.status, HardwareStatuses, 'ATIVO');
 
   try {
     await prisma.hardware.update({ where: { id }, data });
@@ -148,17 +140,11 @@ router.post('/:id/update', requireAuth, async (req, res) => {
 });
 
 // Mover hardware para outra USF e/ou sala (ADMIN e TECH)
-router.post('/:id/move', requireAuth, async (req, res) => {
+router.post('/:id/move', requireRole('ADMIN'), writeLimiter, async (req, res) => {
   const prisma = getPrisma();
-  const id = Number(req.params.id);
-  const newUsfId = Number(req.body.usfId);
-  const newSala = String(req.body.sala || '');
-
-  // Verificar permissão
-  if (!['ADMIN', 'TECH'].includes(req.user.role)) {
-    req.flash('error', 'Acesso negado.');
-    return res.redirect('/');
-  }
+  const id = intId(req.params.id);
+  const newUsfId = intId(req.body.usfId);
+  const newSala = enumValue(req.body.sala, LegacyRooms, null);
 
   if (!newUsfId || !newSala) {
     req.flash('error', 'Selecione uma USF e uma sala de destino.');
@@ -198,9 +184,10 @@ router.post('/:id/move', requireAuth, async (req, res) => {
 });
 
 // Excluir hardware (ADMIN only)
-router.post('/:id/delete', requireRole('ADMIN'), async (req, res) => {
+router.post('/:id/delete', requireRole('ADMIN'), writeLimiter, async (req, res) => {
   const prisma = getPrisma();
-  const id = Number(req.params.id);
+  const id = intId(req.params.id);
+  if (!id) return res.redirect('/hardware');
 
   const hardware = await prisma.hardware.findUnique({ where: { id } });
   if (!hardware) {
@@ -214,7 +201,7 @@ router.post('/:id/delete', requireRole('ADMIN'), async (req, res) => {
     patrimonio: hardware.patrimonio
   });
 
-  req.flash('success', `Hardware ${hardware.patrimonio} excluído.`);
+  req.flash('success', `Hardware ${hardware.patrimonio || hardware.tipo} excluído.`);
   res.redirect('/hardware');
 });
 

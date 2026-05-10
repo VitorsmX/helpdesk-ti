@@ -1,3 +1,5 @@
+const { safeJsonForScript } = require('./security');
+
 function fmtDateBR(d) {
   if (!d) return '';
   return new Date(d).toLocaleString('pt-BR');
@@ -54,7 +56,8 @@ function getRoomIcon(room) {
     'MEDICO': 'bi-hospital',
     'REUNIAO': 'bi-people',
     'VACINA': 'bi-shield-plus',
-    'TRIAGEM': 'bi-clipboard2-pulse'
+    'TRIAGEM': 'bi-clipboard2-pulse',
+    'OUTRO': 'bi-geo-alt'
   };
   return icons[room] || 'bi-geo-alt';
 }
@@ -66,7 +69,8 @@ function translateRoom(room) {
     'MEDICO': 'Médico',
     'REUNIAO': 'Reunião',
     'VACINA': 'Vacina',
-    'TRIAGEM': 'Triagem'
+    'TRIAGEM': 'Triagem',
+    'OUTRO': 'Outro'
   };
   return translations[room] || room;
 }
@@ -95,6 +99,7 @@ module.exports = {
   priorityBadgeClass,
   translateStatus,
   translatePriority,
+  safeJsonForScript,
   getRoomIcon,
   translateRoom,
   getHardwareStatusBadgeClass,

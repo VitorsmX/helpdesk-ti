@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="Helpdesk TI">
+  <rect width="192" height="192" rx="32" fill="#03172f"/>
+  <path d="M48 128h96" stroke="#46d9ff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M60 116V82c0-22 15-38 36-38s36 16 36 38v34" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M82 140c4 8 9 12 14 12s10-4 14-12" fill="none" stroke="#46d9ff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="136" cy="54" r="15" fill="#21c792"/>
+</svg>

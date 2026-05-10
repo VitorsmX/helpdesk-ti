@@ -1,42 +1,36 @@
 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
   <div>
-    <h1 class="h4 mb-1">Chamado #<%= ticket.id %>
-    </h1>
+    <h1 class="h4 mb-1">Chamado #<%= ticket.id %></h1>
     <div class="text-secondary small">
-      USF: <%= ticket.usf?.nome %> • Sala: <%= ticket.room %> • Categoria: <%= ticket.category?.nome %>
+      USF: <%= ticket.usf?.nome %> |
+      Setor: <%= ticket.sector?.nome || '-' %> |
+      Sala: <%= ticket.roomRef?.nome || translateRoom(ticket.room) %> |
+      Categoria: <%= ticket.category?.nome %>
     </div>
   </div>
 
   <div class="d-flex gap-2 flex-wrap">
     <span class="badge <%= statusBadgeClass(ticket.status) %>">Status: <%= translateStatus(ticket.status) %></span>
-    <span class="badge <%= priorityBadgeClass(ticket.priority) %>">Prioridade: <%= translatePriority(ticket.priority) %>
-        </span>
+    <span class="badge <%= priorityBadgeClass(ticket.priority) %>">Prioridade: <%= translatePriority(ticket.priority) %></span>
     <% if (ticket.assignee) { %>
       <span class="badge text-bg-light border">Responsável: <%= ticket.assignee.nome %></span>
-      <% } %>
+    <% } %>
   </div>
 </div>
 
 <div class="card mb-3">
   <div class="card-body">
-    <div class="fw-semibold mb-1">
-      <%= ticket.title %>
-    </div>
+    <div class="fw-semibold mb-1"><%= ticket.title %></div>
     <div class="text-secondary small">
-      SLA 1ª resposta até: <%= fmtDateBR(ticket.responseDueAt) %>
-        <% if (ticket.responseBreachedAt) { %> • <span class="text-danger">Estourado</span>
-          <% } %>
-            <% if (ticket.firstResponseAt) { %> • Respondido: <%= fmtDateBR(ticket.firstResponseAt) %>
-                <% } %>
+      SLA primeira resposta até: <%= fmtDateBR(ticket.responseDueAt) %>
+      <% if (ticket.responseBreachedAt) { %> | <span class="text-danger">Estourado</span><% } %>
+      <% if (ticket.firstResponseAt) { %> | Respondido: <%= fmtDateBR(ticket.firstResponseAt) %><% } %>
     </div>
     <div class="text-secondary small">
       SLA resolução até: <%= fmtDateBR(ticket.resolutionDueAt) %>
-        <% if (ticket.resolutionBreachedAt) { %> • <span class="text-danger">Estourado</span>
-          <% } %>
-            <% if (ticket.slaPausedAt) { %> • <span class="text-warning">Pausado</span>
-              <% } %>
-                <% if (ticket.resolvedAt) { %> • Resolvido: <%= fmtDateBR(ticket.resolvedAt) %>
-                    <% } %>
+      <% if (ticket.resolutionBreachedAt) { %> | <span class="text-danger">Estourado</span><% } %>
+      <% if (ticket.slaPausedAt) { %> | <span class="text-warning">Pausado</span><% } %>
+      <% if (ticket.resolvedAt) { %> | Resolvido: <%= fmtDateBR(ticket.resolvedAt) %><% } %>
     </div>
   </div>
 </div>
@@ -46,29 +40,21 @@
     <div class="card">
       <div class="card-header fw-semibold">Mensagens</div>
       <div class="card-body">
-        <% ticket.messages.forEach(m=> { %>
-          <% if (m.visibility==='INTERNAL' && !(user.role==='TECH' || user.role==='ADMIN' )) { return; } %>
-
-            <div class="mb-3">
-              <div class="d-flex justify-content-between flex-wrap gap-2">
-                <div class="fw-semibold">
-                  <%= m.author.nome %>
-                    <span class="badge text-bg-light border">
-                      <%= m.author.role %>
-                    </span>
-                    <% if (m.visibility==='INTERNAL' ) { %>
-                      <span class="badge text-bg-warning">Interno</span>
-                      <% } %>
-                </div>
-                <div class="text-secondary small">
-                  <%= fmtDateBR(m.createdAt) %>
-                </div>
+        <% ticket.messages.forEach(m => { %>
+          <div class="mb-3">
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+              <div class="fw-semibold">
+                <%= m.author.nome %>
+                <span class="badge text-bg-light border"><%= m.author.role %></span>
+                <% if (m.visibility === 'INTERNAL') { %>
+                  <span class="badge text-bg-warning">Interno</span>
+                <% } %>
               </div>
-              <div class="mt-2 p-3 bg-light border rounded-3">
-                <%= m.body %>
-              </div>
+              <div class="text-secondary small"><%= fmtDateBR(m.createdAt) %></div>
             </div>
-            <% }) %>
+            <div class="mt-2 p-3 bg-light border rounded-3"><%= m.body %></div>
+          </div>
+        <% }) %>
       </div>
     </div>
 
@@ -77,24 +63,22 @@
       <div class="card-body">
         <% if (!ticket.attachments.length) { %>
           <div class="text-secondary">Sem anexos.</div>
-          <% } else { %>
-            <ul class="list-group">
-              <% ticket.attachments.forEach(a=> { %>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <div>
-                    <div class="fw-semibold">
-                      <%= a.originalName %>
-                    </div>
-                    <div class="text-secondary small">
-                      <%= Math.round(a.sizeBytes/1024) %> KB
-                    </div>
+        <% } else { %>
+          <ul class="list-group">
+            <% ticket.attachments.forEach(a => { %>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold"><%= a.originalName %></div>
+                  <div class="text-secondary small">
+                    <%= Math.round(a.sizeBytes / 1024) %> KB
+                    <% if (a.visibility === 'INTERNAL') { %> | Interno<% } %>
                   </div>
-                  <a class="btn btn-sm btn-outline-primary"
-                    href="/tickets/<%= ticket.id %>/attachments/<%= a.id %>">Baixar</a>
-                </li>
-                <% }) %>
-            </ul>
-            <% } %>
+                </div>
+                <a class="btn btn-sm btn-outline-primary" href="/tickets/<%= ticket.id %>/attachments/<%= a.id %>">Baixar</a>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
       </div>
     </div>
   </div>
@@ -103,16 +87,15 @@
     <div class="card">
       <div class="card-header fw-semibold">Comentar</div>
       <div class="card-body">
-        <form method="post" action="/tickets/<%= ticket.id %>/message?_csrf=<%= csrfToken %>"
-          enctype="multipart/form-data">
+        <form method="post" action="/tickets/<%= ticket.id %>/message?_csrf=<%= csrfToken %>" enctype="multipart/form-data">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
           <div class="mb-3">
             <label class="form-label">Mensagem</label>
-            <textarea class="form-control" name="body" rows="5" required></textarea>
+            <textarea class="form-control" name="body" rows="5" maxlength="10000" required></textarea>
           </div>
 
-          <% if (user.role==='TECH' || user.role==='ADMIN' ) { %>
+          <% if (user.role === 'TECH' || user.role === 'ADMIN') { %>
             <div class="mb-3">
               <label class="form-label">Visibilidade</label>
               <select class="form-select" name="visibility">
@@ -120,22 +103,23 @@
                 <option value="INTERNAL">Interno (só TI/Admin)</option>
               </select>
             </div>
-            <% } %>
+          <% } %>
 
-              <div class="mb-3">
-                <label class="form-label">Anexos (opcional)</label>
-                <input class="form-control" type="file" name="attachments" multiple />
-              </div>
+          <div class="mb-3">
+            <label class="form-label">Anexos (opcional)</label>
+            <input class="form-control" type="file" name="attachments" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple />
+            <div class="form-text">Anexos em comentário interno também ficam internos.</div>
+          </div>
 
-              <div class="d-grid">
-                <button class="btn btn-primary" type="submit">Enviar</button>
-              </div>
+          <div class="d-grid">
+            <button class="btn btn-primary" type="submit">Enviar</button>
+          </div>
         </form>
 
-        <% if (user.role==='TECH' ) { %>
+        <% if (user.role === 'TECH') { %>
           <hr class="my-3">
           <a class="btn btn-outline-secondary w-100" href="/tech/tickets/<%= ticket.id %>">Atender (TI)</a>
-          <% } %>
+        <% } %>
       </div>
     </div>
   </div>

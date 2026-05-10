@@ -1,56 +1,67 @@
-<h1 class="h3 mb-4 text-gray-800">
-  <i class="bi bi-people text-primary"></i> Gerenciar Usuários
-</h1>
+<%
+  const roleLabels = {
+    ADMIN: 'Administrador',
+    TECH: 'Técnico de TI',
+    COORDINATOR: 'Coordenador',
+    REQUESTER: 'Solicitante'
+  };
+  const roleColors = {
+    ADMIN: 'danger',
+    TECH: 'primary',
+    COORDINATOR: 'info',
+    REQUESTER: 'secondary'
+  };
+  const roleIcons = {
+    ADMIN: 'shield-fill-check',
+    TECH: 'tools',
+    COORDINATOR: 'person-badge',
+    REQUESTER: 'person'
+  };
+%>
 
-<!-- Formulário de Novo Usuário -->
+<div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-people text-primary"></i> Usuários e permissões
+    </h1>
+    <p class="text-muted mb-0">Gerencie contas seguindo o menor privilégio necessário para cada função.</p>
+  </div>
+</div>
+
 <div class="card shadow mb-4">
-  <div class="card-header py-3 bg-gradient-primary">
-    <h6 class="m-0 font-weight-bold text-white">
-      <i class="bi bi-person-plus"></i> Novo Usuário
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">
+      <i class="bi bi-person-plus"></i> Novo usuário
     </h6>
   </div>
   <div class="card-body">
     <form method="post" action="/admin/users">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-      <div class="row">
-        <div class="col-md-6 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-person"></i> Nome Completo
-          </label>
-          <input class="form-control" name="nome" required placeholder="Ex: João Silva">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nome completo <span class="required-mark">Obrigatório</span></label>
+          <input class="form-control" name="nome" required maxlength="160" placeholder="Ex: João Silva">
         </div>
-
-        <div class="col-md-3 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-at"></i> Login
-          </label>
-          <input class="form-control" name="login" required placeholder="joao.silva">
+        <div class="col-md-3">
+          <label class="form-label">Login <span class="required-mark">Obrigatório</span></label>
+          <input class="form-control" name="login" required maxlength="80" autocomplete="off" placeholder="joao.silva">
         </div>
-
-        <div class="col-md-3 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-telephone"></i> Telefone
-          </label>
-          <input class="form-control" name="telefone" placeholder="(00) 00000-0000">
+        <div class="col-md-3">
+          <label class="form-label">E-mail <span class="optional-mark">Opcional</span></label>
+          <input class="form-control" type="email" name="email" maxlength="160" placeholder="usuario@capanema.pa.gov.br">
         </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-briefcase"></i> Cargo
-          </label>
-          <input class="form-control" name="cargo" required placeholder="Ex: Enfermeiro, Recepcionista">
-          <div class="form-text">
-            <i class="bi bi-info-circle"></i> Se "Enfermeiro", pode virar Coordenador automaticamente
-          </div>
+        <div class="col-md-3">
+          <label class="form-label">Telefone <span class="optional-mark">Opcional</span></label>
+          <input class="form-control" name="telefone" maxlength="40" placeholder="(00) 00000-0000">
         </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-building"></i> Unidade (USF)
-          </label>
+        <div class="col-md-3">
+          <label class="form-label">Cargo <span class="required-mark">Obrigatório</span></label>
+          <input class="form-control" name="cargo" required maxlength="120" placeholder="Ex: Enfermeiro, Recepcionista">
+          <div class="form-text">O cargo pode atribuir perfil de coordenador automaticamente, conforme configuração.</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Unidade <span class="required-mark">Obrigatório</span></label>
           <select class="form-select" name="usfId" required>
             <option value="">Selecione...</option>
             <% usfs.forEach(u => { %>
@@ -58,41 +69,34 @@
             <% }) %>
           </select>
         </div>
-
-        <div class="col-md-2 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-shield"></i> Perfil
-          </label>
+        <div class="col-md-3">
+          <label class="form-label">Perfil <span class="required-mark">Obrigatório</span></label>
           <select class="form-select" name="role">
             <option value="REQUESTER">Solicitante</option>
             <option value="COORDINATOR">Coordenador</option>
-            <option value="TECH">Técnico TI</option>
-            <option value="ADMIN">Admin</option>
+            <option value="TECH">Técnico de TI</option>
+            <option value="ADMIN">Administrador</option>
           </select>
         </div>
-
-        <div class="col-md-2 mb-3">
-          <label class="form-label fw-semibold">
-            <i class="bi bi-key"></i> Senha
-          </label>
-          <input class="form-control" type="password" name="password" required placeholder="••••••">
+        <div class="col-md-3">
+          <label class="form-label">Senha inicial <span class="required-mark">Obrigatório</span></label>
+          <input class="form-control" type="password" name="password" minlength="8" maxlength="128" required autocomplete="new-password" placeholder="Mínimo 8 caracteres">
         </div>
       </div>
 
-      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+      <div class="d-flex justify-content-end mt-3">
         <button class="btn btn-primary" type="submit">
-          <i class="bi bi-check-circle"></i> Cadastrar Usuário
+          <i class="bi bi-check-circle"></i> Cadastrar usuário
         </button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- Lista de Usuários -->
 <div class="card shadow">
   <div class="card-header py-3">
     <h6 class="m-0 font-weight-bold text-primary">
-      <i class="bi bi-list-ul"></i> Usuários Cadastrados
+      <i class="bi bi-list-ul"></i> Usuários cadastrados
       <span class="badge bg-primary ms-2"><%= users.length %></span>
     </h6>
   </div>
@@ -129,71 +133,53 @@
                     <div>
                       <div class="fw-semibold"><%= u.nome %></div>
                       <% if (u.telefone) { %>
-                        <small class="text-muted">
-                          <i class="bi bi-telephone"></i> <%= u.telefone %>
-                        </small>
+                        <small class="text-muted"><i class="bi bi-telephone"></i> <%= u.telefone %></small>
+                      <% } %>
+                      <% if (u.email) { %>
+                        <small class="text-muted d-block"><i class="bi bi-envelope"></i> <%= u.email %></small>
                       <% } %>
                     </div>
                   </div>
                 </td>
-                <td>
-                  <code class="text-dark"><%= u.login %></code>
-                </td>
-                <td>
-                  <span class="text-secondary"><%= u.cargo %></span>
-                </td>
+                <td><code class="text-dark"><%= u.login %></code></td>
+                <td><span class="text-secondary"><%= u.cargo %></span></td>
                 <td>
                   <% if (u.usf) { %>
-                    <span class="badge bg-light text-dark border">
-                      <i class="bi bi-building"></i> <%= u.usf.nome %>
-                    </span>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-building"></i> <%= u.usf.nome %></span>
                   <% } %>
                 </td>
                 <td>
-                  <% 
-                    const roleColors = {
-                      ADMIN: 'danger',
-                      TECH: 'primary',
-                      COORDINATOR: 'info',
-                      REQUESTER: 'secondary'
-                    };
-                    const roleIcons = {
-                      ADMIN: 'shield-fill-check',
-                      TECH: 'tools',
-                      COORDINATOR: 'person-badge',
-                      REQUESTER: 'person'
-                    };
-                  %>
                   <span class="badge bg-<%= roleColors[u.role] || 'secondary' %>">
-                    <i class="bi bi-<%= roleIcons[u.role] || 'person' %>"></i> <%= u.role %>
+                    <i class="bi bi-<%= roleIcons[u.role] || 'person' %>"></i>
+                    <%= roleLabels[u.role] || u.role %>
                   </span>
                 </td>
                 <td>
                   <% if (u.ativo) { %>
-                    <span class="badge bg-success">
-                      <i class="bi bi-check-circle"></i> Ativo
-                    </span>
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Ativo</span>
                   <% } else { %>
-                    <span class="badge bg-warning text-dark">
-                      <i class="bi bi-pause-circle"></i> Inativo
-                    </span>
+                    <span class="badge bg-warning text-dark"><i class="bi bi-pause-circle"></i> Inativo</span>
                   <% } %>
                 </td>
                 <td class="text-end pe-4">
-                  <!-- Botão Ativar/Desativar -->
-                  <form method="post" action="/admin/users/<%= u.id %>/toggle" class="d-inline">
-                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <button class="btn btn-sm btn-outline-<%= u.ativo ? 'warning' : 'success' %>" type="submit"
-                            data-bs-toggle="tooltip" title="<%= u.ativo ? 'Desativar' : 'Ativar' %>">
-                      <i class="bi bi-<%= u.ativo ? 'pause' : 'play' %>-circle"></i>
-                    </button>
-                  </form>
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#editUser-<%= u.id %>" title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
 
-                  <!-- Botão Reset de Senha -->
-                  <button class="btn btn-sm btn-outline-secondary ms-1"
-                          data-bs-toggle="modal"
-                          data-bs-target="#resetModal-<%= u.id %>"
-                          title="Redefinir senha">
+                  <% if (u.id !== user.id) { %>
+                    <form method="post" action="/admin/users/<%= u.id %>/toggle" class="d-inline js-confirm-action"
+                      data-confirm-title="<%= u.ativo ? 'Desativar usuário' : 'Ativar usuário' %>"
+                      data-confirm-message="<%= u.ativo ? 'Desativar ' + u.nome + '? Ele não conseguirá acessar o sistema até ser reativado.' : 'Ativar ' + u.nome + '?' %>"
+                      data-confirm-confirm="<%= u.ativo ? 'Desativar' : 'Ativar' %>"
+                      data-confirm-variant="btn-<%= u.ativo ? 'warning' : 'success' %>">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="btn btn-sm btn-outline-<%= u.ativo ? 'warning' : 'success' %> ms-1" type="submit" title="<%= u.ativo ? 'Desativar' : 'Ativar' %>">
+                        <i class="bi bi-<%= u.ativo ? 'pause' : 'play' %>-circle"></i>
+                      </button>
+                    </form>
+                  <% } %>
+
+                  <button class="btn btn-sm btn-outline-secondary ms-1" type="button" data-bs-toggle="modal" data-bs-target="#resetModal-<%= u.id %>" title="Redefinir senha">
                     <i class="bi bi-key"></i>
                   </button>
                 </td>
@@ -206,56 +192,96 @@
   </div>
 </div>
 
-<!-- Modais de Reset de Senha (fora da tabela para evitar z-index/overflow) -->
 <% users.forEach(u => { %>
-<div class="modal fade" id="resetModal-<%= u.id %>" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">
-          <i class="bi bi-key me-2 text-warning"></i>Redefinir Senha
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="post" action="/admin/users/<%= u.id %>/reset-password">
+  <div class="modal fade" id="editUser-<%= u.id %>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <form method="post" action="/admin/users/<%= u.id %>/update" class="modal-content">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Editar usuário</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
         <div class="modal-body">
-          <p class="text-muted mb-3">
-            Definindo nova senha para <strong><%= u.nome %></strong>
-            <code class="ms-1"><%= u.login %></code>
-          </p>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">
-              <i class="bi bi-lock me-1"></i> Nova Senha
-            </label>
-            <input type="password" class="form-control" name="newPassword"
-                   placeholder="Mínimo 6 caracteres" minlength="6" required autofocus>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Nome completo <span class="required-mark">Obrigatório</span></label>
+              <input class="form-control" name="nome" value="<%= u.nome %>" maxlength="160" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Login <span class="required-mark">Obrigatório</span></label>
+              <input class="form-control" name="login" value="<%= u.login %>" maxlength="80" required>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">E-mail <span class="optional-mark">Opcional</span></label>
+              <input class="form-control" type="email" name="email" value="<%= u.email || '' %>" maxlength="160">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Telefone <span class="optional-mark">Opcional</span></label>
+              <input class="form-control" name="telefone" value="<%= u.telefone || '' %>" maxlength="40">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Cargo <span class="required-mark">Obrigatório</span></label>
+              <input class="form-control" name="cargo" value="<%= u.cargo %>" maxlength="120" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Unidade <span class="required-mark">Obrigatório</span></label>
+              <select class="form-select" name="usfId" required>
+                <% usfs.forEach(unit => { %>
+                  <option value="<%= unit.id %>" <%= unit.id === u.usfId ? 'selected' : '' %>><%= unit.nome %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Perfil <span class="required-mark">Obrigatório</span></label>
+              <select class="form-select" name="role" <%= u.id === user.id ? 'disabled' : '' %>>
+                <% Object.keys(roleLabels).forEach(role => { %>
+                  <option value="<%= role %>" <%= role === u.role ? 'selected' : '' %>><%= roleLabels[role] %></option>
+                <% }) %>
+              </select>
+              <% if (u.id === user.id) { %>
+                <div class="form-text">Você não pode alterar o próprio perfil.</div>
+              <% } %>
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" role="switch" name="ativo" id="ativo-<%= u.id %>" <%= u.ativo ? 'checked' : '' %> <%= u.id === user.id ? 'disabled' : '' %>>
+                <label class="form-check-label" for="ativo-<%= u.id %>">Usuário ativo</label>
+                <% if (u.id === user.id) { %>
+                  <div class="form-text">Você não pode desativar a própria conta.</div>
+                <% } %>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-warning">
-            <i class="bi bi-key me-1"></i> Redefinir Senha
-          </button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar alterações</button>
         </div>
       </form>
     </div>
   </div>
-</div>
+
+  <div class="modal fade" id="resetModal-<%= u.id %>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form method="post" action="/admin/users/<%= u.id %>/reset-password" class="modal-content">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-key me-2 text-warning"></i>Redefinir senha</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-3">
+            Nova senha para <strong><%= u.nome %></strong>
+            <code class="ms-1"><%= u.login %></code>
+          </p>
+          <label class="form-label">Nova senha <span class="required-mark">Obrigatório</span></label>
+          <input type="password" class="form-control" name="newPassword" placeholder="Mínimo 8 caracteres, letras e números" minlength="8" maxlength="128" required autocomplete="new-password">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning"><i class="bi bi-key me-1"></i> Redefinir senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
 <% }) %>
-
-<style>
-.avatar-sm {
-  width: 40px;
-  height: 40px;
-}
-</style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-  });
-</script>

@@ -1,13 +1,43 @@
-<% if (flash?.error?.length) { %>
-  <div class="alert alert-danger alert-dismissible fade show" role="alert">
-    <%= flash.error[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-  </div>
-<% } %>
+<% const hasFlash = flash && ((flash.error && flash.error.length) || (flash.success && flash.success.length) || (flash.info && flash.info.length)); %>
+<% if (hasFlash) { %>
+  <div class="app-flash-region" tabindex="-1" aria-label="Mensagens do sistema">
+    <% if (flash.error?.length) { %>
+      <div class="alert app-alert app-alert-danger alert-dismissible fade show" role="alert" aria-live="assertive">
+        <i class="bi bi-exclamation-circle app-alert-icon"></i>
+        <div>
+          <strong>Não foi possível continuar</strong>
+          <% flash.error.forEach(message => { %>
+            <div><%= message %></div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+    <% } %>
 
-<% if (flash?.success?.length) { %>
-  <div class="alert alert-success alert-dismissible fade show" role="alert">
-    <%= flash.success[0] %>
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    <% if (flash.success?.length) { %>
+      <div class="alert app-alert app-alert-success alert-dismissible fade show" role="status" aria-live="polite">
+        <i class="bi bi-check-circle app-alert-icon"></i>
+        <div>
+          <strong>Tudo certo</strong>
+          <% flash.success.forEach(message => { %>
+            <div><%= message %></div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+    <% } %>
+
+    <% if (flash.info?.length) { %>
+      <div class="alert app-alert app-alert-info alert-dismissible fade show" role="status" aria-live="polite">
+        <i class="bi bi-info-circle app-alert-icon"></i>
+        <div>
+          <strong>Atualização recebida</strong>
+          <% flash.info.forEach(message => { %>
+            <div><%= message %></div>
+          <% }) %>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+    <% } %>
   </div>
 <% } %>

@@ -1,8 +1,10 @@
-<h1 class="h3 mb-4 text-danger">⚠️ SLA - Chamados Estourados</h1>
+<h1 class="h3 mb-4 text-danger">
+  <i class="bi bi-clock-history"></i> SLA - Chamados fora do prazo
+</h1>
 
 <div class="card shadow mb-4 border-left-danger">
   <div class="card-header py-3 bg-danger text-white">
-    <h6 class="m-0 font-weight-bold">Chamados Fora do Prazo</h6>
+    <h6 class="m-0 font-weight-bold">Chamados que exigem atenção</h6>
   </div>
   <div class="card-body">
     <div class="table-responsive">
@@ -15,27 +17,29 @@
             <th>USF</th>
             <th>Categoria</th>
             <th>Técnico</th>
-            <th>Erro SLA</th>
+            <th>Indicador SLA</th>
           </tr>
         </thead>
         <tbody>
           <% if (tickets.length === 0) { %>
-            <tr><td colspan="7" class="text-center text-success fw-bold">Parabéns! Nenhum chamado estourado.</td></tr>
+            <tr>
+              <td colspan="7" class="text-center text-success fw-bold">Nenhum chamado fora do prazo.</td>
+            </tr>
           <% } else { %>
             <% tickets.forEach(t => { %>
               <tr>
                 <td><a href="/tickets/<%= t.id %>">#<%= t.id %></a></td>
-                <td><%= new Date(t.createdAt).toLocaleDateString() %></td>
-                <td><span class="badge bg-danger"><%= t.status %></span></td>
+                <td><%= new Date(t.createdAt).toLocaleDateString('pt-BR') %></td>
+                <td><span class="badge bg-danger"><%= translateStatus(t.status) %></span></td>
                 <td><%= t.usf ? t.usf.nome : '-' %></td>
                 <td><%= t.category ? t.category.nome : '-' %></td>
                 <td><%= t.assignee ? t.assignee.nome : 'Sem técnico' %></td>
                 <td class="text-danger fw-bold">
                   <% if (t.responseBreachedAt) { %>
-                    RESPOSTA (<%= new Date(t.responseBreachedAt).toLocaleString() %>)
+                    Resposta (<%= new Date(t.responseBreachedAt).toLocaleString('pt-BR') %>)
                   <% } %>
                   <% if (t.resolutionBreachedAt) { %>
-                     RESOLUÇÃO (<%= new Date(t.resolutionBreachedAt).toLocaleString() %>)
+                    Resolução (<%= new Date(t.resolutionBreachedAt).toLocaleString('pt-BR') %>)
                   <% } %>
                 </td>
               </tr>

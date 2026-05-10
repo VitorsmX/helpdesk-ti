@@ -1,9 +1,11 @@
 services:
-  # ── Banco de Dados MySQL ────────────────────────────────────────────────────
   db:
     image: mysql:8.0
     container_name: helpdesk-db
     restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -11,34 +13,75 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - helpdesk_db_data:/var/lib/mysql
-    ports:
-      - "10.0.0.40:3306:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     networks:
       - helpdesk-net
 
-  # ── Aplicação Node.js ───────────────────────────────────────────────────────
   app:
-    image: ghcr.io/devgueds/helpdesk-ti:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: helpdesk-ti:latest
     container_name: helpdesk-app
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      PORT: ${PORT}
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
+      PORT: 3000
       SESSION_SECRET: ${SESSION_SECRET}
-      SESSION_MAX_AGE_MS: ${SESSION_MAX_AGE_MS}
+      SESSION_MAX_AGE_MS: ${SESSION_MAX_AGE_MS:-28800000}
+      SESSION_STORE: ${SESSION_STORE:-mysql}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-helpdesk.sid}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-8388608}
+      UPLOAD_MAX_FILES: ${UPLOAD_MAX_FILES:-5}
+      SYSTEM_ASSET_DIR: /app/uploads/system
+      REPORT_LOGO_MAX_BYTES: ${REPORT_LOGO_MAX_BYTES:-2097152}
+      REPORT_MAX_ROWS: ${REPORT_MAX_ROWS:-5000}
+      PDF_MAX_ROWS: ${PDF_MAX_ROWS:-250}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_DIR: /app/logs
+      LOG_FILE: ${LOG_FILE:-system.log}
+      LOG_TO_STDOUT: ${LOG_TO_STDOUT:-true}
+      ASSET_VARIANT: ${ASSET_VARIANT:-modern}
+      RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}
+      RUN_SEED: ${RUN_SEED:-false}
+      SEED_ADMIN_LOGIN: ${SEED_ADMIN_LOGIN:-Admin}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      AUTO_COORDINATOR_FOR_ENFERMEIRO: ${AUTO_COORDINATOR_FOR_ENFERMEIRO:-true}
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - helpdesk-net
     volumes:
-      # Pasta de uploads persistente
-      - helpdesk_uploads:/app/public/uploads
+      - helpdesk_uploads:/app/uploads
+      - helpdesk_logs:/app/logs
 
 volumes:
   helpdesk_db_data:
   helpdesk_uploads:
+  helpdesk_logs:
 
 networks:
   helpdesk-net:

@@ -1,0 +1,33 @@
+<section class="error-shell">
+  <div class="error-panel">
+    <div class="error-icon">
+      <i class="bi bi-exclamation-triangle"></i>
+    </div>
+    <div>
+      <p class="text-muted mb-1">Código <strong><%= error.reference %></strong></p>
+      <h1 class="h3 mb-2"><%= error.title %></h1>
+      <p class="mb-3"><%= error.message %></p>
+
+      <details class="error-details">
+        <summary>Mais detalhes para suporte</summary>
+        <dl class="row mb-0 mt-3 small">
+          <dt class="col-sm-4">Referência</dt>
+          <dd class="col-sm-8"><code><%= error.reference %></code></dd>
+          <dt class="col-sm-4">Tipo</dt>
+          <dd class="col-sm-8"><code><%= error.errorCode %></code></dd>
+          <dt class="col-sm-4">Requisição</dt>
+          <dd class="col-sm-8"><code><%= error.requestId || 'não informado' %></code></dd>
+          <dt class="col-sm-4">Caminho</dt>
+          <dd class="col-sm-8"><code><%= error.method %> <%= error.path %></code></dd>
+          <dt class="col-sm-4">Horário</dt>
+          <dd class="col-sm-8"><code><%= error.timestamp %></code></dd>
+        </dl>
+      </details>
+
+      <div class="d-flex flex-wrap gap-2 mt-4">
+        <a class="btn btn-primary" href="/">Voltar ao início</a>
+        <a class="btn btn-outline-secondary" href="/tickets/my">Meus chamados</a>
+      </div>
+    </div>
+  </div>
+</section>

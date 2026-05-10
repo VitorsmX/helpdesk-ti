@@ -13,15 +13,19 @@ async function attachMonitoringStats(req, res, next) {
 
   try {
     const prisma = getPrisma();
+    const now = new Date();
 
     // Fetch all monitoring statistics in parallel
     const [slaBreachedCount, condemnedCount, waitingPartsCount] = await Promise.all([
       // SLA Breached tickets
       prisma.ticket.count({
         where: {
+          status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING'] },
           OR: [
             { responseBreachedAt: { not: null } },
-            { resolutionBreachedAt: { not: null } }
+            { resolutionBreachedAt: { not: null } },
+            { firstResponseAt: null, responseDueAt: { lt: now } },
+            { resolvedAt: null, resolutionDueAt: { lt: now } }
           ]
         }
       }),

@@ -1,13 +1,19 @@
 const { getPrisma } = require('../db');
+const { AppError } = require('../utils/errors');
 
 async function attachUserToReq(req, res, next) {
   if (!req.session.userId) return next();
 
-  const prisma = getPrisma();
-  const user = await prisma.user.findUnique({
-    where: { id: req.session.userId },
-    include: { usf: true }
-  });
+  let user = null;
+  try {
+    const prisma = getPrisma();
+    user = await prisma.user.findUnique({
+      where: { id: req.session.userId },
+      include: { usf: true }
+    });
+  } catch (error) {
+    return next(error);
+  }
 
   if (!user || !user.ativo) {
     req.session.userId = null;
@@ -26,7 +32,14 @@ function requireAuth(req, res, next) {
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.redirect('/login');
-    if (!roles.includes(req.user.role)) return res.status(403).send('Acesso negado');
+    if (!roles.includes(req.user.role)) {
+      return next(new AppError({
+        code: 'ACCESS_DENIED',
+        status: 403,
+        message: 'Acesso não autorizado',
+        publicMessage: 'Você não tem permissão para acessar esta área.'
+      }));
+    }
     next();
   };
 }

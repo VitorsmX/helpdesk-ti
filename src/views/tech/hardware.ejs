@@ -1,4 +1,4 @@
-<div class="container-fluid">
+﻿<div class="container-fluid">
   <!-- Header -->
   <div class="d-sm-flex align-items-center justify-content-between mb-4">
     <h1 class="h3 mb-0 text-gray-800">
@@ -91,16 +91,9 @@
                   <td class="text-end">
                     <div class="btn-group btn-group-sm" role="group">
                       <button class="btn btn-info btn-xs btn-edit-hw" 
-                              data-hw="<%- JSON.stringify(hw).replace(/"/g, '&quot;') %>" 
+                              data-hw="<%= JSON.stringify(hw) %>" 
                               title="Editar">
                         <i class="bi bi-pencil text-white" style="font-size: 0.8rem;"></i>
-                      </button>
-                      <button class="btn btn-warning btn-xs btn-move-hw" 
-                              data-id="<%= hw.id %>" 
-                              data-patrimonio="<%= hw.patrimonio %>" 
-                              data-usfs="<%- JSON.stringify(usfs).replace(/"/g, '&quot;') %>" 
-                              title="Mover">
-                        <i class="bi bi-arrow-left-right text-white" style="font-size: 0.8rem;"></i>
                       </button>
                     </div>
                   </td>
@@ -176,8 +169,17 @@
   </div>
 </div>
 
-<script>
+<script type="application/json" data-disabled-inline-script="hardware-modals" nonce="<%= cspNonce %>">
 // Helper functions for modals
+function escapeHtml(value) {
+  return String(value ? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function openEditModal(hw) {
   const form = document.getElementById('formEdit');
   form.action = `/hardware/${hw.id}/update`;
@@ -190,26 +192,26 @@ function openEditModal(hw) {
     
     <div class="mb-3">
       <label class="form-label">Patrimônio</label>
-      <input type="text" class="form-control" value="${hw.patrimonio}" disabled>
+      <input type="text" class="form-control" value="${escapeHtml(hw.patrimonio || '')}" disabled>
     </div>
     <div class="mb-3">
       <label class="form-label">USF</label>
-      <input type="text" class="form-control" value="${hw.usf.nome}" disabled>
+      <input type="text" class="form-control" value="${escapeHtml(hw.usf.nome)}" disabled>
     </div>
     <div class="mb-3">
       <label class="form-label">Tipo</label>
-      <input type="text" class="form-control" value="${hw.tipo}" disabled>
+      <input type="text" class="form-control" value="${escapeHtml(hw.tipo)}" disabled>
     </div>
     <div class="mb-3">
       <label class="form-label">Modelo</label>
-      <input type="text" class="form-control" value="${hw.modelo || '-'}" disabled>
+      <input type="text" class="form-control" value="${escapeHtml(hw.modelo || '-')}" disabled>
     </div>
     
     <hr>
     
     <div class="mb-3">
       <label class="form-label">AnyDesk</label>
-      <input type="text" name="anydesk" class="form-control" value="${hw.anydesk || ''}" placeholder="Digite o código AnyDesk">
+      <input type="text" name="anydesk" class="form-control" value="${escapeHtml(hw.anydesk || '')}" placeholder="Digite o código AnyDesk">
     </div>
     <div class="mb-3">
       <label class="form-label">Status</label>
@@ -232,7 +234,7 @@ function openMoveModal(id, patrimonio, usfs) {
   
   const select = document.getElementById('moveUsfSelect');
   select.innerHTML = '<option value="">Selecione...</option>' + 
-    usfs.map(usf => `<option value="${usf.id}">${usf.nome}</option>`).join('');
+    usfs.map(usf => `<option value="${usf.id}">${escapeHtml(usf.nome)}</option>`).join('');
   
   new bootstrap.Modal(document.getElementById('modalMove')).show();
 }
@@ -351,6 +353,7 @@ function translateStatus(status) {
   return translations[status] || status;
 }
 </script>
+<script src="<%= asset('/public/hardware-modals.js') %>"></script>
 
 <style>
 .hardware-anydesk {
@@ -385,3 +388,4 @@ function translateStatus(status) {
   border-radius: 0.2rem;
 }
 </style>
+

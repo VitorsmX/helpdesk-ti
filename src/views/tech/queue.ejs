@@ -55,8 +55,8 @@
             </label>
             <select class="form-select" name="room">
               <option value="">Todas as salas</option>
-              <% ['RECEPCAO', 'ENFERMAGEM', 'MEDICO', 'REUNIAO', 'VACINA', 'TRIAGEM'].forEach(r => { %>
-                <option value="<%= r %>" <%= filters.room === r ? 'selected' : '' %>><%= r %></option>
+              <% ['RECEPCAO', 'ENFERMAGEM', 'MEDICO', 'REUNIAO', 'VACINA', 'TRIAGEM', 'OUTRO'].forEach(r => { %>
+                <option value="<%= r %>" <%= filters.room === r ? 'selected' : '' %>><%= translateRoom(r) %></option>
               <% }) %>
             </select>
           </div>
@@ -187,7 +187,7 @@
                     <% } %>
                   </td>
                   <td class="queue-room-col d-none d-xl-table-cell">
-                    <span class="badge bg-secondary queue-badge-compact"><%= t.room %></span>
+                    <span class="badge bg-secondary queue-badge-compact"><%= t.roomRef?.nome || translateRoom(t.room) %></span>
                   </td>
                   <td class="queue-status-col">
                     <span class="badge <%= statusBadgeClass(t.status) %> queue-badge-compact">

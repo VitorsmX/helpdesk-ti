@@ -1,310 +1,255 @@
-const express = require('express');
-const { getPrisma } = require('../db');
-const { requireRole } = require('../middleware/auth');
+const express = require("express");
+const { getPrisma } = require("../db");
+const { requireRole } = require("../middleware/auth");
+const {
+  parseReportFilters,
+  buildTicketWhere,
+  getReportFormOptions,
+  isResponseBreached,
+  isResolutionBreached,
+} = require("../services/reporting.service");
+const { getReportSettings } = require("../services/settings.service");
 
 const router = express.Router();
 
-router.get('/', requireRole('ADMIN', 'TECH'), async (req, res) => {
+router.get("/", requireRole("ADMIN", "TECH", "COORDINATOR"), async (req, res) => {
   const prisma = getPrisma();
-  
-  // Get period from query string (default: 30 days)
-  const periodParam = req.query.period || '30d';
-  const periodMap = {
-    '7d': 7,
-    '30d': 30,
-    '90d': 90,
-    'all': 365 * 10 // 10 years for "all time"
-  };
-  const days = periodMap[periodParam] || 30;
-  
-  // Date range for queries
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - days);
-  
-  // For trend chart (always last 7 days regardless of filter)
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const selectedPeriod = req.query.period || "30d";
+  const filters = parseReportFilters({ ...req.query, period: selectedPeriod }, req.user);
 
   try {
-    // Execute all queries in parallel for better performance
-    const [
-      totalOpen,
-      totalResolved,
-      avgResponseTimeResult,
-      slaMetrics,
-      criticalCounts,
-      topUsfsRaw,
-      topCategoriesRaw,
-      byUsfRaw,
-      lowStock,
-      trendDataRaw,
-      techWorkloadRaw,
-      slaDetailsRaw
-    ] = await Promise.all([
-      // 1. Total chamados abertos
-      prisma.ticket.count({
-        where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING'] } }
+    const [tickets, lowStock, options, reportSettings] = await Promise.all([
+      prisma.ticket.findMany({
+        where: buildTicketWhere(req.user, filters),
+        include: {
+          usf: true,
+          sector: true,
+          roomRef: true,
+          category: true,
+          requester: true,
+          assignee: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: Number(process.env.REPORT_DASHBOARD_MAX_ROWS || 5000),
       }),
-      
-      // 2. Total chamados resolvidos (últimos 30 dias)
-      prisma.ticket.count({
-        where: { 
-          status: { in: ['RESOLVED', 'CLOSED'] },
-          createdAt: { gte: thirtyDaysAgo }
-        }
-      }),
-      
-      // 3. Tempo médio de primeira resposta (em horas)
-      prisma.$queryRaw`
-        SELECT AVG(TIMESTAMPDIFF(HOUR, createdAt, firstResponseAt)) as avg_hours
-        FROM Ticket 
-        WHERE firstResponseAt IS NOT NULL 
-        AND createdAt >= ${thirtyDaysAgo}
-      `,
-      
-      // 4. Métricas de SLA — inclui abertos de qualquer data + fechados do período
-      prisma.$queryRaw`
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN firstResponseAt IS NOT NULL AND responseBreachedAt IS NULL THEN 1 END) as on_time,
-          COUNT(CASE WHEN responseBreachedAt IS NOT NULL OR firstResponseAt IS NULL THEN 1 END) as breached
-        FROM Ticket 
-        WHERE createdAt >= ${thirtyDaysAgo}
-           OR (status IN ('OPEN','IN_PROGRESS','WAITING','WAITING_PARTS') AND firstResponseAt IS NULL)
-      `,
-      
-      // 5. Contadores para alertas críticos
-      Promise.all([
-        prisma.ticket.count({ 
-          where: { 
-            responseBreachedAt: { not: null },
-            status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING'] }
-          } 
-        }),
-        prisma.insumo.count({ where: { quantidadeAtual: 0 } }),
-        prisma.ticket.count({ 
-          where: { 
-            resolution: 'SEM_REPARO_EQUIPAMENTO_CONDENADO',
-            status: { not: 'CLOSED' }
-          }
-        }),
-        prisma.ticket.count({ 
-          where: { 
-            status: 'WAITING',
-            resolution: null
-          }
-        })
-      ]),
-      
-      // 6. Top 5 USFs com mais chamados
-      prisma.$queryRaw`
-        SELECT 
-          u.id,
-          u.nome,
-          COUNT(t.id) as total_chamados,
-          COUNT(CASE WHEN t.priority = 'URGENT' THEN 1 END) as urgentes,
-          COUNT(CASE WHEN t.responseBreachedAt IS NOT NULL THEN 1 END) as sla_breach
-        FROM Ticket t
-        JOIN USF u ON t.usfId = u.id
-        WHERE t.createdAt >= ${thirtyDaysAgo}
-        GROUP BY u.id, u.nome
-        ORDER BY total_chamados DESC
-        LIMIT 5
-      `,
-      
-      // 7. Top 5 Categorias mais demandadas
-      prisma.ticket.groupBy({
-        by: ['categoryId'],
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        _count: { id: true },
-        orderBy: { _count: { id: 'desc' } },
-        take: 5
-      }),
-      
-      // 8. Gráfico por USF (todos)
-      prisma.ticket.groupBy({
-        by: ['usfId'],
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        _count: { _all: true }
-      }),
-      
-      // 9. Estoque crítico
       prisma.insumo.findMany({
-        where: { 
+        where: {
           OR: [
             { quantidadeAtual: 0 },
-            { quantidadeAtual: { lte: prisma.insumo.fields.quantidadeMinima } }
-          ]
+            { quantidadeAtual: { lte: prisma.insumo.fields.quantidadeMinima } },
+          ],
         },
-        orderBy: { quantidadeAtual: 'asc' },
-        take: 10
+        orderBy: { quantidadeAtual: "asc" },
+        take: 10,
       }),
-      
-      // 10. Tendência temporal (últimos 7 dias)
-      prisma.$queryRaw`
-        SELECT 
-          DATE(createdAt) as dia,
-          COUNT(*) as total_chamados,
-          COUNT(CASE WHEN priority = 'URGENT' THEN 1 END) as urgentes,
-          COUNT(CASE WHEN status IN ('RESOLVED', 'CLOSED') THEN 1 END) as resolvidos
-        FROM Ticket
-        WHERE createdAt >= ${sevenDaysAgo}
-        GROUP BY DATE(createdAt)
-        ORDER BY dia
-      `,
-      
-      // 11. Carga de trabalho por técnico
-      prisma.$queryRaw`
-        SELECT 
-          u.id,
-          u.nome,
-          COUNT(t.id) as chamados_ativos,
-          COUNT(CASE WHEN t.priority = 'URGENT' THEN 1 END) as urgentes,
-          AVG(TIMESTAMPDIFF(HOUR, t.createdAt, t.firstResponseAt)) as tempo_resposta_medio
-        FROM Ticket t
-        JOIN User u ON t.assigneeId = u.id
-        WHERE t.status IN ('OPEN', 'IN_PROGRESS', 'WAITING')
-          AND u.role = 'TECH'
-          AND u.ativo = 1
-        GROUP BY u.id, u.nome
-        ORDER BY chamados_ativos DESC
-      `,
-      
-      // 12. SLA detalhado — inclui abertos de qualquer data + fechados do período
-      prisma.$queryRaw`
-        SELECT 
-          COUNT(*) as total,
-          COUNT(CASE WHEN firstResponseAt IS NOT NULL AND responseBreachedAt IS NULL THEN 1 END) as no_prazo,
-          COUNT(CASE WHEN responseBreachedAt IS NOT NULL OR firstResponseAt IS NULL THEN 1 END) as atrasados,
-          AVG(TIMESTAMPDIFF(HOUR, createdAt, firstResponseAt)) as tempo_medio_resposta,
-          AVG(TIMESTAMPDIFF(HOUR, createdAt, resolvedAt)) as tempo_medio_resolucao
-        FROM Ticket
-        WHERE createdAt >= ${thirtyDaysAgo}
-           OR (status IN ('OPEN','IN_PROGRESS','WAITING','WAITING_PARTS') AND firstResponseAt IS NULL)
-      `
+      getReportFormOptions(prisma, req.user),
+      getReportSettings(prisma),
     ]);
 
-    // Process results
-    
-    // KPIs - Convert BigInt to Number
-    const avgResponseTime = Number(avgResponseTimeResult[0]?.avg_hours || 0);
-    const slaTotal = Number(slaMetrics[0]?.total || 0);
-    const slaOnTime = Number(slaMetrics[0]?.on_time || 0);
-    const slaRate = slaTotal > 0 
-      ? ((slaOnTime / slaTotal) * 100).toFixed(1)
-      : 0;
-    
-    const kpis = {
-      totalOpen,
-      avgResponseTime: avgResponseTime.toFixed(1),
-      slaRate,
-      criticalAlerts: Number(criticalCounts[0]) + Number(criticalCounts[1]) + Number(criticalCounts[2]) + Number(criticalCounts[3])
-    };
-    
-    // Alerts breakdown
-    const alerts = {
-      slaBreached: criticalCounts[0],
-      stockZero: criticalCounts[1],
-      condemned: criticalCounts[2],
-      waitingParts: criticalCounts[3]
-    };
+    const dashboard = buildDashboardFromTickets(tickets, filters.period);
 
-    // Top USFs (already processed by query)
-    const topUsfs = topUsfsRaw.map(usf => ({
-      ...usf,
-      total_chamados: Number(usf.total_chamados),
-      urgentes: Number(usf.urgentes),
-      sla_breach: Number(usf.sla_breach)
-    }));
-
-    // Top Categories - enrich with category names
-    const categoryIds = topCategoriesRaw.map(c => c.categoryId);
-    const categories = await prisma.category.findMany({
-      where: { id: { in: categoryIds } }
-    });
-    
-    const totalTicketsForPercentage = await prisma.ticket.count({
-      where: { createdAt: { gte: thirtyDaysAgo } }
-    });
-    
-    const topCategories = topCategoriesRaw.map(item => {
-      const category = categories.find(c => c.id === item.categoryId);
-      const percentage = totalTicketsForPercentage > 0 
-        ? ((item._count.id / totalTicketsForPercentage) * 100).toFixed(1)
-        : 0;
-      
-      return {
-        nome: category?.nome || 'Desconhecido',
-        total: item._count.id,
-        percentage
-      };
-    });
-
-    // Chart data - enrich USF names
-    const allUsfs = await prisma.usf.findMany();
-    const byUsf = byUsfRaw.map(item => {
-      const usf = allUsfs.find(u => u.id === item.usfId);
-      return {
-        usfName: usf ? usf.nome : 'Desconhecido',
-        count: item._count._all
-      };
-    }).sort((a, b) => b.count - a.count);
-
-    // Process trend data - Convert BigInt to Number
-    const trendData = trendDataRaw.map(item => ({
-      dia: item.dia,
-      total_chamados: Number(item.total_chamados),
-      urgentes: Number(item.urgentes),
-      resolvidos: Number(item.resolvidos)
-    }));
-
-    // Process tech workload - Convert BigInt to Number
-    const techWorkload = techWorkloadRaw.map(tech => ({
-      id: Number(tech.id),
-      nome: tech.nome,
-      chamados_ativos: Number(tech.chamados_ativos),
-      urgentes: Number(tech.urgentes),
-      tempo_resposta_medio: Number(tech.tempo_resposta_medio || 0).toFixed(1)
-    }));
-
-    // Process SLA details - Convert BigInt to Number
-    const slaDetails = slaDetailsRaw[0] ? {
-      total: Number(slaDetailsRaw[0].total),
-      no_prazo: Number(slaDetailsRaw[0].no_prazo),
-      atrasados: Number(slaDetailsRaw[0].atrasados),
-      tempo_medio_resposta: Number(slaDetailsRaw[0].tempo_medio_resposta || 0).toFixed(1),
-      tempo_medio_resolucao: Number(slaDetailsRaw[0].tempo_medio_resolucao || 0).toFixed(1),
-      taxa_cumprimento: slaDetailsRaw[0].total > 0 
-        ? ((Number(slaDetailsRaw[0].no_prazo) / Number(slaDetailsRaw[0].total)) * 100).toFixed(1)
-        : 0
-    } : {
-      total: 0,
-      no_prazo: 0,
-      atrasados: 0,
-      tempo_medio_resposta: 0,
-      tempo_medio_resolucao: 0,
-      taxa_cumprimento: 0
-    };
-
-    res.render('reports/index', {
-      title: 'Dashboard Gerencial',
-      stats: { totalOpen, totalResolved },
-      kpis,
-      alerts,
-      topUsfs,
-      topCategories,
-      byUsf,
+    res.render("reports/index", {
+      title: "Dashboard Gerencial",
+      stats: {
+        totalOpen: dashboard.kpis.totalOpen,
+        totalResolved: dashboard.totalResolved,
+      },
+      kpis: dashboard.kpis,
+      alerts: dashboard.alerts,
+      topUsfs: dashboard.topUsfs,
+      topCategories: dashboard.topCategories,
+      byUsf: dashboard.byUsf,
       lowStock,
-      trendData,
-      techWorkload,
-      slaDetails,
-      selectedPeriod: periodParam
+      trendData: dashboard.trendData,
+      techWorkload: dashboard.techWorkload,
+      slaDetails: dashboard.slaDetails,
+      categoryChart: dashboard.categoryChart,
+      slaByUnitChart: dashboard.slaByUnitChart,
+      sectorHotspots: dashboard.sectorHotspots,
+      selectedPeriod: filters.period,
+      reportFilters: filters,
+      reportOptions: options,
+      reportSettings,
     });
-    
   } catch (error) {
-    console.error('Error loading dashboard:', error);
-    res.status(500).send('Erro ao carregar dashboard');
+    console.error("Error loading dashboard:", error);
+    res.status(500).send("Erro ao carregar dashboard");
   }
 });
+
+function buildDashboardFromTickets(tickets, selectedPeriod) {
+  const now = new Date();
+  const activeTickets = tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status));
+  const resolvedTickets = tickets.filter((ticket) => ["RESOLVED", "CLOSED"].includes(ticket.status));
+  const responseBreachedTickets = tickets.filter((ticket) => isResponseBreached(ticket, now));
+  const responseOnTime = tickets.length - responseBreachedTickets.length;
+  const slaRate = tickets.length > 0 ? ((responseOnTime / tickets.length) * 100).toFixed(1) : "0.0";
+
+  const responseHours = tickets
+    .filter((ticket) => ticket.firstResponseAt)
+    .map((ticket) => hoursBetween(ticket.createdAt, ticket.firstResponseAt));
+
+  const kpis = {
+    totalOpen: activeTickets.length,
+    avgResponseTime: average(responseHours).toFixed(1),
+    slaRate,
+    criticalAlerts: responseBreachedTickets.length
+      + tickets.filter((ticket) => isResolutionBreached(ticket, now)).length
+      + activeTickets.filter((ticket) => ticket.priority === "URGENT").length,
+  };
+
+  return {
+    totalResolved: resolvedTickets.length,
+    kpis,
+    alerts: {
+      slaBreached: responseBreachedTickets.length,
+      stockZero: 0,
+      condemned: tickets.filter((ticket) => ticket.resolution === "SEM_REPARO_EQUIPAMENTO_CONDENADO").length,
+      waitingParts: tickets.filter((ticket) => ticket.status === "WAITING" && !ticket.resolution).length,
+    },
+    topUsfs: buildTopUsfs(tickets),
+    topCategories: buildTopCategories(tickets),
+    byUsf: buildByUsf(tickets),
+    trendData: buildTrendData(tickets, selectedPeriod),
+    techWorkload: buildTechWorkload(tickets),
+    slaDetails: buildSlaDetails(tickets),
+    categoryChart: buildCategoryChart(tickets),
+    slaByUnitChart: buildSlaByUnitChart(tickets),
+    sectorHotspots: buildSectorHotspots(tickets),
+  };
+}
+
+function groupBy(items, keyFn) {
+  const map = new Map();
+  for (const item of items) {
+    const key = keyFn(item);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(item);
+  }
+  return map;
+}
+
+function buildTopUsfs(tickets) {
+  const now = new Date();
+  return [...groupBy(tickets, (ticket) => ticket.usf?.nome || "Desconhecida").entries()]
+    .map(([nome, group]) => ({
+      nome,
+      total_chamados: group.length,
+      urgentes: group.filter((ticket) => ticket.priority === "URGENT").length,
+      sla_breach: group.filter((ticket) => isResponseBreached(ticket, now)).length,
+    }))
+    .sort((a, b) => (b.sla_breach - a.sla_breach) || (b.total_chamados - a.total_chamados))
+    .slice(0, 5);
+}
+
+function buildTopCategories(tickets) {
+  return [...groupBy(tickets, (ticket) => ticket.category?.nome || "Sem categoria").entries()]
+    .map(([nome, group]) => ({
+      nome,
+      total: group.length,
+      percentage: tickets.length ? ((group.length / tickets.length) * 100).toFixed(1) : "0.0",
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+}
+
+function buildByUsf(tickets) {
+  return [...groupBy(tickets, (ticket) => ticket.usf?.nome || "Desconhecida").entries()]
+    .map(([usfName, group]) => ({ usfName, count: group.length }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function buildTrendData(tickets) {
+  const days = 7;
+  const rows = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() - i);
+    const next = new Date(day);
+    next.setDate(day.getDate() + 1);
+    const group = tickets.filter((ticket) => {
+      const created = new Date(ticket.createdAt);
+      return created >= day && created < next;
+    });
+    rows.push({
+      dia: day.toISOString(),
+      total_chamados: group.length,
+      urgentes: group.filter((ticket) => ticket.priority === "URGENT").length,
+      resolvidos: group.filter((ticket) => ["RESOLVED", "CLOSED"].includes(ticket.status)).length,
+    });
+  }
+  return rows;
+}
+
+function buildTechWorkload(tickets) {
+  return [...groupBy(tickets.filter((ticket) => ticket.assignee), (ticket) => ticket.assignee.nome).entries()]
+    .map(([nome, group], index) => ({
+      id: index + 1,
+      nome,
+      chamados_ativos: group.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length,
+      urgentes: group.filter((ticket) => ticket.priority === "URGENT").length,
+      tempo_resposta_medio: average(group.filter((ticket) => ticket.firstResponseAt).map((ticket) => hoursBetween(ticket.createdAt, ticket.firstResponseAt))).toFixed(1),
+    }))
+    .sort((a, b) => b.chamados_ativos - a.chamados_ativos)
+    .slice(0, 10);
+}
+
+function buildSlaDetails(tickets) {
+  const now = new Date();
+  const atrasados = tickets.filter((ticket) => isResponseBreached(ticket, now)).length;
+  const noPrazo = Math.max(0, tickets.length - atrasados);
+  return {
+    total: tickets.length,
+    no_prazo: noPrazo,
+    atrasados,
+    tempo_medio_resposta: average(tickets.filter((ticket) => ticket.firstResponseAt).map((ticket) => hoursBetween(ticket.createdAt, ticket.firstResponseAt))).toFixed(1),
+    tempo_medio_resolucao: average(tickets.filter((ticket) => ticket.resolvedAt).map((ticket) => hoursBetween(ticket.createdAt, ticket.resolvedAt))).toFixed(1),
+    taxa_cumprimento: tickets.length ? ((noPrazo / tickets.length) * 100).toFixed(1) : "0.0",
+  };
+}
+
+function buildCategoryChart(tickets) {
+  return buildTopCategories(tickets).map((item) => ({ label: item.nome, value: item.total }));
+}
+
+function buildSlaByUnitChart(tickets) {
+  const now = new Date();
+  return [...groupBy(tickets, (ticket) => ticket.usf?.nome || "Desconhecida").entries()]
+    .map(([label, group]) => ({
+      label,
+      value: group.length ? Number((((group.length - group.filter((ticket) => isResponseBreached(ticket, now)).length) / group.length) * 100).toFixed(1)) : 0,
+    }))
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 10);
+}
+
+function buildSectorHotspots(tickets) {
+  const now = new Date();
+  return [...groupBy(tickets, (ticket) => [
+    ticket.usf?.nome || "Unidade",
+    ticket.sector?.nome || "Sem setor",
+    ticket.roomRef?.nome || ticket.room || "Sem sala",
+  ].join(" / ")).entries()]
+    .map(([name, group]) => ({
+      name,
+      total: group.length,
+      breached: group.filter((ticket) => isResponseBreached(ticket, now)).length,
+      urgent: group.filter((ticket) => ticket.priority === "URGENT").length,
+    }))
+    .sort((a, b) => (b.breached - a.breached) || (b.total - a.total))
+    .slice(0, 8);
+}
+
+function hoursBetween(start, end) {
+  if (!start || !end) return 0;
+  return Math.max(0, (new Date(end) - new Date(start)) / (1000 * 60 * 60));
+}
+
+function average(values) {
+  const nums = values.filter((value) => Number.isFinite(value));
+  if (!nums.length) return 0;
+  return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+}
 
 module.exports = router;
