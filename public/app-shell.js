@@ -268,10 +268,13 @@
     })
       .then(function (response) {
         if (!response.ok) throw new Error("HTTP " + response.status);
-        return response.text();
+        var finalUrl = getSameOriginResponseUrl(response, targetUrl.href);
+        return response.text().then(function (html) {
+          return { html: html, url: finalUrl };
+        });
       })
-      .then(function (html) {
-        swapHtml(html, targetUrl.href, opts.push !== false, opts.flash, opts.replaceFlash);
+      .then(function (payload) {
+        swapHtml(payload.html, payload.url, opts.push !== false, opts.flash, opts.replaceFlash);
       })
       .catch(function (error) {
         showFlash({
@@ -298,6 +301,14 @@
       });
     }
     return { type: "other", response: response };
+  }
+
+  function getSameOriginResponseUrl(response, fallbackUrl) {
+    if (!response || !response.url) return fallbackUrl;
+
+    var responseUrl = new URL(response.url, window.location.href);
+    if (responseUrl.origin !== window.location.origin) return fallbackUrl;
+    return responseUrl.href;
   }
 
   function swapHtml(html, url, push, flash, replaceFlash) {

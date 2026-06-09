@@ -59,12 +59,7 @@ router.get('/', requireRole('ADMIN'), async (req, res) => {
   });
 });
 
-// Logs de Auditoria (with alias)
-router.get('/audit-logs', requireRole('ADMIN'), async (req, res) => {
-  return res.redirect('/admin/audit');
-});
-
-router.get('/audit', requireRole('ADMIN'), async (req, res) => {
+async function renderAuditLogs(req, res) {
   const prisma = getPrisma();
   const logs = await prisma.auditLog.findMany({
     orderBy: { createdAt: 'desc' },
@@ -72,7 +67,11 @@ router.get('/audit', requireRole('ADMIN'), async (req, res) => {
     take: 100
   });
   res.render('admin/audit', { title: 'Logs de Auditoria', logs });
-});
+}
+
+// Logs de Auditoria (with legacy alias)
+router.get('/audit-logs', requireRole('ADMIN'), renderAuditLogs);
+router.get('/audit', requireRole('ADMIN'), renderAuditLogs);
 
 // Equipamentos Condenados (with alias)
 router.get('/condemned-assets', requireRole('ADMIN'), async (req, res) => {

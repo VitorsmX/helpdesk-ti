@@ -19,6 +19,14 @@ const reportsIndex = fs.readFileSync(
   path.join(__dirname, "..", "..", "src", "views", "reports", "index.ejs"),
   "utf8",
 );
+const mainLayout = fs.readFileSync(
+  path.join(__dirname, "..", "..", "src", "views", "layouts", "main.ejs"),
+  "utf8",
+);
+const adminRoutes = fs.readFileSync(
+  path.join(__dirname, "..", "..", "src", "routes", "admin.routes.js"),
+  "utf8",
+);
 
 test("app shell keeps regular POST forms URL-encoded for Express and CSRF", () => {
   assert.match(appShell, /function buildPostPayload/);
@@ -37,6 +45,14 @@ test("app shell syncs body state so login background does not leak after AJAX na
   assert.match(appShell, /function syncBodyAttributes/);
   assert.match(appShell, /document\.body\.className = nextBody\.className \|\| ""/);
   assert.match(appShell, /data-/);
+});
+
+test("audit log sidebar link avoids legacy redirect during AJAX navigation", () => {
+  assert.match(mainLayout, /href="\/admin\/audit"/);
+  assert.doesNotMatch(mainLayout, /href="\/admin\/audit-logs"/);
+  assert.match(adminRoutes, /router\.get\('\/audit-logs', requireRole\('ADMIN'\), renderAuditLogs\)/);
+  assert.doesNotMatch(adminRoutes, /redirect\('\/admin\/audit'\)/);
+  assert.match(appShell, /function getSameOriginResponseUrl/);
 });
 
 test("login background stays scoped and expanded sidebar does not cover desktop content", () => {
